@@ -21,8 +21,14 @@ export const NAV: NavItem[] = [
 const GROUPS = ['Основное', 'Домены', 'Управление', 'Конструктор', 'Система'];
 const VALID_SECTIONS = NAV.map((n) => n.id);
 
-const Layout = () => {
-  const { section = 'library' } = useParams<{ section: string }>();
+interface LayoutProps {
+  section?: string;
+  children?: React.ReactNode;
+}
+
+const Layout = ({ section: sectionProp, children }: LayoutProps = {}) => {
+  const params = useParams<{ section: string }>();
+  const section = sectionProp ?? params.section ?? 'library';
   const [menuOpen, setMenuOpen] = useState(true);
 
   if (!VALID_SECTIONS.includes(section)) {
@@ -156,7 +162,7 @@ const Layout = () => {
 
         {/* Section content */}
         <main className="flex-1 overflow-y-auto">
-          <SectionContent section={section} />
+          {children ?? <SectionContent section={section} />}
         </main>
 
         <footer className="px-6 py-4 border-t border-border text-center text-xs font-mono text-muted-foreground">
