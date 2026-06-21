@@ -1,11 +1,5 @@
 import Icon from '@/components/ui/icon';
 
-const ACTIVITY = [
-  { user: 'А. Соколов',  action: 'обновил требование',     target: 'ИБ-204 · Шифрование данных',       time: '12 мин', color: 'bg-accent'   },
-  { user: 'М. Орлова',   action: 'согласовала архитектуру', target: 'Защищённый периметр v2',            time: '48 мин', color: 'bg-success'  },
-  { user: 'Д. Климов',   action: 'добавил конфигурацию',    target: 'CIS Benchmark · Linux',             time: '2 ч',    color: 'bg-primary'  },
-  { user: 'Система',     action: 'выявила несоответствие',  target: 'Шаблон «Гибридное облако»',         time: '4 ч',    color: 'bg-warning'  },
-];
 
 const ARCH_TEMPLATES = [
   { name: 'Защищённый периметр', desc: 'Эталон сетевой сегментации с DMZ',                    tags: ['Сеть', 'NGFW'],  status: 'Утверждён',    tone: 'success' },
@@ -58,8 +52,8 @@ const statusCls = (tone: string) =>
 const Library = () => (
   <>
     <Hero icon="Library" title="Пользовательская библиотека" desc="Централизованное хранилище всех объектов платформы: требований, решений, архитектур и конфигураций." badge="Библиотека" />
-    <div className="px-6 py-8 max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <section className="lg:col-span-2 rounded-lg border border-border bg-card p-6">
+    <div className="px-6 py-8 max-w-[1400px] mx-auto">
+      <section className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-semibold tracking-tight flex items-center gap-2">
             <Icon name="Boxes" size={18} className="text-accent" /> Шаблоны архитектур
@@ -88,35 +82,6 @@ const Library = () => (
             </div>
           ))}
         </div>
-      </section>
-      <section className="rounded-lg border border-border bg-card p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold tracking-tight flex items-center gap-2">
-            <Icon name="Users" size={18} className="text-accent" /> Коллаборация
-          </h2>
-          <span className="size-2 rounded-full bg-success animate-pulse" />
-        </div>
-        <div className="space-y-1">
-          {ACTIVITY.map((a, i) => (
-            <div key={i} className="flex gap-3 py-2.5">
-              <div className="relative flex flex-col items-center">
-                <span className={`size-2.5 rounded-full ${a.color} mt-1.5 shrink-0`} />
-                {i < ACTIVITY.length - 1 && <span className="w-px flex-1 bg-border mt-1" />}
-              </div>
-              <div className="min-w-0 pb-1">
-                <p className="text-sm leading-snug">
-                  <span className="font-medium">{a.user}</span>{' '}
-                  <span className="text-muted-foreground">{a.action}</span>
-                </p>
-                <p className="text-sm text-foreground/80 truncate">{a.target}</p>
-                <span className="text-[11px] font-mono text-muted-foreground">{a.time} назад</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button className="mt-4 w-full h-9 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-          <Icon name="MessageSquare" size={14} /> Открыть обсуждение
-        </button>
       </section>
     </div>
   </>
