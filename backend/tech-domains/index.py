@@ -96,11 +96,17 @@ def handler(event: dict, context) -> dict:
     method = event.get("httpMethod", "GET")
     params = event.get("queryStringParameters") or {}
     tech_id = params.get("id")
+    org_list = params.get("orgList")
 
     conn = get_conn()
     try:
         with conn:
             with conn.cursor() as cur:
+
+                # ── GET org_domains for picker ─────────────────────────────
+                if method == "GET" and org_list:
+                    cur.execute("SELECT id, name FROM org_domains ORDER BY name")
+                    return ok([{"id": r[0], "name": r[1]} for r in cur.fetchall()])
 
                 # ── GET list ──────────────────────────────────────────────
                 if method == "GET" and not tech_id:
@@ -184,7 +190,10 @@ def handler(event: dict, context) -> dict:
 
                 # ── POST create ───────────────────────────────────────────
                 if method == "POST":
-                    body = json.loads(event.get("body") or "{}")
+                    raw = event.get("body") or "{}"
+                    body = json.loads(raw)
+                    if isinstance(body, str):
+                        body = json.loads(body)
                     name = (body.get("name") or "").strip()
                     if not name:
                         return err("Название обязательно")
@@ -230,7 +239,10 @@ def handler(event: dict, context) -> dict:
 
                 # ── PUT update ────────────────────────────────────────────
                 if method == "PUT":
-                    body = json.loads(event.get("body") or "{}")
+                    raw = event.get("body") or "{}"
+                    body = json.loads(raw)
+                    if isinstance(body, str):
+                        body = json.loads(body)
                     did = body.get("id") or tech_id
                     if not did:
                         return err("ID обязателен")
