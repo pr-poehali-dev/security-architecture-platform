@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "GET list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "POST create",
+      "method": "POST",
+      "path": "/",
+      "body": "{\"name\": \"Тестовый тех. домен\", \"owner\": \"Admin\", \"status\": \"active\", \"description\": \"Тест\", \"orgDomainIds\": []}",
+      "expectedStatus": 201,
+      "expectedBody": {"name": "Тестовый тех. домен", "version": "1.0"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET list after create",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
