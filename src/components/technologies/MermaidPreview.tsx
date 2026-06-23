@@ -5,6 +5,30 @@ import Icon from '@/components/ui/icon';
 
 type MermaidTheme = 'dark' | 'default' | 'forest' | 'neutral' | 'base';
 
+// Инициализируем один раз — все типы диаграмм поддерживаются автоматически
+// (повторный initialize() сбрасывает регистрацию модулей)
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+  // Разрешаем useMaxWidth=false для всех типов, чтобы схема не обрезалась
+  flowchart:   { useMaxWidth: false, htmlLabels: true },
+  sequence:    { useMaxWidth: false },
+  gantt:       { useMaxWidth: false },
+  journey:     { useMaxWidth: false },
+  timeline:    { useMaxWidth: false },
+  er:          { useMaxWidth: false },
+  pie:         { useMaxWidth: false },
+  mindmap:     { useMaxWidth: false },
+  sankey:      { useMaxWidth: false },
+  block:       { useMaxWidth: false },
+  packet:      { useMaxWidth: false },
+  gitGraph:    { useMaxWidth: false },
+  xychart:     { useMaxWidth: false },
+  quadrantChart: { useMaxWidth: false },
+  requirementDiagram: { useMaxWidth: false },
+});
+
 const THEMES: { value: MermaidTheme; label: string }[] = [
   { value: 'dark',    label: 'Тёмная'    },
   { value: 'default', label: 'Светлая'   },
@@ -195,13 +219,9 @@ export default function MermaidPreview({ code, title, className = '', compact, s
     const renderIdx = ++renderCount.current;
     setError('');
     try {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: currentTheme,
-        securityLevel: 'loose',
-        flowchart: { useMaxWidth: false },
-        sequence: { useMaxWidth: false },
-      });
+      // Меняем только тему — не вызываем initialize повторно,
+      // чтобы не потерять регистрацию всех типов диаграмм
+      mermaid.setConfig({ theme: currentTheme });
       const id = `${idRef.current}-${renderIdx}`;
       const { svg: rendered } = await mermaid.render(id, currentCode);
       if (renderCount.current === renderIdx) setSvg(rendered);

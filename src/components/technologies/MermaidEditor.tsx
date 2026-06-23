@@ -9,10 +9,88 @@ interface Props {
   onSaved: (d: MermaidDiagram) => void;
 }
 
-const PLACEHOLDER = `graph TD
+const SNIPPETS: { label: string; code: string }[] = [
+  { label: 'Flowchart', code: `flowchart TD
     A[Начало] --> B{Условие}
     B -->|Да| C[Действие]
-    B -->|Нет| D[Конец]`;
+    B -->|Нет| D[Конец]` },
+  { label: 'Sequence', code: `sequenceDiagram
+    participant A as Клиент
+    participant B as Сервер
+    A->>B: Запрос
+    B-->>A: Ответ` },
+  { label: 'Class', code: `classDiagram
+    class Animal {
+        +String name
+        +makeSound()
+    }
+    class Dog {
+        +fetch()
+    }
+    Animal <|-- Dog` },
+  { label: 'State', code: `stateDiagram-v2
+    [*] --> Idle
+    Idle --> Running : start
+    Running --> Idle : stop
+    Running --> [*] : finish` },
+  { label: 'ER', code: `erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ ITEM : contains
+    USER {
+        int id
+        string name
+    }` },
+  { label: 'Gantt', code: `gantt
+    title График проекта
+    dateFormat YYYY-MM-DD
+    section Фаза 1
+    Задача 1 :a1, 2024-01-01, 30d
+    Задача 2 :after a1, 20d` },
+  { label: 'Pie', code: `pie title Распределение
+    "Frontend" : 40
+    "Backend"  : 35
+    "DevOps"   : 25` },
+  { label: 'GitGraph', code: `gitGraph
+    commit
+    branch feature
+    checkout feature
+    commit
+    commit
+    checkout main
+    merge feature` },
+  { label: 'Mindmap', code: `mindmap
+  root((Проект))
+    Фронтенд
+      React
+      TypeScript
+    Бэкенд
+      Python
+      PostgreSQL` },
+  { label: 'Timeline', code: `timeline
+    title История версий
+    2022 : Запуск v1.0
+    2023 : Релиз v2.0
+         : Новый UI
+    2024 : v3.0 — Текущая` },
+  { label: 'XY Chart', code: `xychart-beta
+    title "Продажи по месяцам"
+    x-axis [Янв, Фев, Мар, Апр]
+    y-axis "Сумма (тыс)" 0 --> 100
+    bar  [50, 70, 60, 90]
+    line [50, 70, 60, 90]` },
+  { label: 'Quadrant', code: `quadrantChart
+    title Приоритизация задач
+    x-axis Низкий приоритет --> Высокий приоритет
+    y-axis Низкая сложность --> Высокая сложность
+    quadrant-1 Делать сейчас
+    quadrant-2 Планировать
+    quadrant-3 Делегировать
+    quadrant-4 Пересмотреть
+    Задача А: [0.7, 0.3]
+    Задача Б: [0.3, 0.7]` },
+];
+
+const PLACEHOLDER = SNIPPETS[0].code;
 
 export default function MermaidEditor({ technologyId, diagrams, onSaved }: Props) {
   const [editing, setEditing] = useState<MermaidDiagram | null>(null);
@@ -101,6 +179,25 @@ export default function MermaidEditor({ technologyId, diagrams, onSaved }: Props
               placeholder="Необязательно"
               className="w-full h-9 px-3 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
             />
+          </div>
+
+          {/* Snippets */}
+          <div>
+            <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-1.5">
+              Шаблон схемы
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {SNIPPETS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => setCode(s.code)}
+                  className="text-[11px] px-2.5 py-1 rounded border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
