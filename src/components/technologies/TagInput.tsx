@@ -19,7 +19,7 @@ export default function TagInput({ value, onChange }: Props) {
     timer.current = setTimeout(async () => {
       const res = await fetchTagsSuggest(input);
       setSuggestions(res.filter((t) => !value.includes(t.name)));
-      setOpen(res.length > 0);
+      setOpen(input.trim().length > 0 && res.length > 0);
     }, 200);
   }, [input, value]);
 
