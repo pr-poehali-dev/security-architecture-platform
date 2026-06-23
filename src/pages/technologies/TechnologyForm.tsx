@@ -39,9 +39,17 @@ export default function TechnologyForm() {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<Tab>('main');
+  const tabKey = `form:technology:${id ?? 'new'}:tab`;
+  const [tab, setTab] = useState<Tab>(() => {
+    try { return (sessionStorage.getItem(tabKey) as Tab) || 'main'; } catch { return 'main'; }
+  });
   const [mdPreview, setMdPreview] = useState(false);
   const [restored, setRestored] = useState(false);
+
+  const switchTab = (t: Tab) => {
+    setTab(t);
+    try { sessionStorage.setItem(tabKey, t); } catch { /* */ }
+  };
 
   const { clear } = useFormCache(cacheKey, form, (cached) => {
     if (isEdit) {
@@ -88,10 +96,12 @@ export default function TechnologyForm() {
       if (isEdit && id) {
         await updateTechnology(id, form);
         clear();
+        try { sessionStorage.removeItem(tabKey); } catch { /* */ }
         navigate(`/technologies/${id}`);
       } else {
         const created = await createTechnology(form);
         clear();
+        try { sessionStorage.removeItem(tabKey); } catch { /* */ }
         navigate(`/technologies/${created.id}`);
       }
     } catch (e: unknown) {
@@ -150,7 +160,7 @@ export default function TechnologyForm() {
             <span>Восстановлен несохранённый черновик</span>
             <button
               type="button"
-              onClick={() => { clear(); setForm(EMPTY); setRestored(false); }}
+              onClick={() => { clear(); setForm(EMPTY); setRestored(false); try { sessionStorage.removeItem(tabKey); } catch { /* */ } switchTab('main'); }}
               className="ml-auto text-xs underline underline-offset-2 hover:opacity-70"
             >
               Сбросить
@@ -166,7 +176,7 @@ export default function TechnologyForm() {
             <button
               key={t.id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => switchTab(t.id)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 tab === t.id
                   ? 'border-accent text-accent'
