@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
+import { useFormCache } from '@/hooks/useFormCache';
 import TagInput from '@/components/technologies/TagInput';
 import MermaidEditor from '@/components/technologies/MermaidEditor';
 import FileAttachments from '@/components/technologies/FileAttachments';
@@ -26,6 +27,7 @@ export default function TechnologyForm() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const cacheKey = `form:technology:${id ?? 'new'}`;
 
   const [form, setForm] = useState(EMPTY);
   const [domainId, setDomainId] = useState('');
@@ -39,14 +41,30 @@ export default function TechnologyForm() {
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('main');
   const [mdPreview, setMdPreview] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  const { clear } = useFormCache(cacheKey, form, (cached) => {
+    if (isEdit) {
+      // при редактировании применяем кеш только до загрузки с API
+      setForm(cached);
+      setRestored(true);
+    } else {
+      setForm(cached);
+      setRestored(true);
+    }
+  });
 
   useEffect(() => {
     if (!isEdit || !id) return;
     fetchTechnology(id)
       .then((d) => {
-        setForm({
-          name: d.name, owner: d.owner, status: d.status,
-          description: d.description, tags: d.tags.map((t) => t.name), changeNote: '',
+        setForm((prev) => {
+          // Если кеш уже подставил данные — не перетираем
+          const hasCache = prev.name !== '';
+          return hasCache ? prev : {
+            name: d.name, owner: d.owner, status: d.status,
+            description: d.description, tags: d.tags.map((t) => t.name), changeNote: '',
+          };
         });
         setDomainId(d.id);
         setCurrentVersion(d.version);
@@ -69,9 +87,11 @@ export default function TechnologyForm() {
     try {
       if (isEdit && id) {
         await updateTechnology(id, form);
+        clear();
         navigate(`/technologies/${id}`);
       } else {
         const created = await createTechnology(form);
+        clear();
         navigate(`/technologies/${created.id}`);
       }
     } catch (e: unknown) {
@@ -122,6 +142,22 @@ export default function TechnologyForm() {
           </h1>
         </div>
       </div>
+
+      {restored && (
+        <div className="px-6 pt-4 max-w-[1000px] mx-auto">
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-warning/30 bg-warning/8 text-warning text-sm">
+            <Icon name="RotateCcw" size={15} />
+            <span>Восстановлен несохранённый черновик</span>
+            <button
+              type="button"
+              onClick={() => { clear(); setForm(EMPTY); setRestored(false); }}
+              className="ml-auto text-xs underline underline-offset-2 hover:opacity-70"
+            >
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tab bar */}
       <div className="border-b border-border bg-card/60 backdrop-blur-sm sticky top-16 z-10">

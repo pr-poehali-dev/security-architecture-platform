@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
+import { useFormCache } from '@/hooks/useFormCache';
 import {
   fetchOrgDomain,
   createOrgDomain,
@@ -15,24 +16,37 @@ export default function OrgDomainForm() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const cacheKey = `form:org-domain:${id ?? 'new'}`;
 
   const [form, setForm] = useState(EMPTY);
   const [domainId, setDomainId] = useState('');
   const [currentVersion, setCurrentVersion] = useState('');
-  const [loading, setLoading] = useState(isEdit);
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [restored, setRestored] = useState(false);
+
+  const { clear } = useFormCache(cacheKey, form, (cached) => {
+    if (!loaded) { setForm(cached); setRestored(true); }
+  });
 
   useEffect(() => {
-    if (!isEdit || !id) return;
-    fetchOrgDomain(id)
-      .then((d) => {
-        setForm({ name: d.name, owner: d.owner, status: d.status, description: d.description, changeNote: '' });
-        setDomainId(d.id);
-        setCurrentVersion(d.version);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    if (isEdit && id) {
+      fetchOrgDomain(id)
+        .then((d) => {
+          setLoaded(true);
+          // Восстанавливаем из кеша если там есть изменения, иначе из API
+          setForm((prev) => {
+            const hasCache = prev.name !== '' || prev.description !== '';
+            return hasCache ? prev : { name: d.name, owner: d.owner, status: d.status, description: d.description, changeNote: '' };
+          });
+          setDomainId(d.id);
+          setCurrentVersion(d.version);
+        })
+        .catch((e) => setError(e.message));
+    } else {
+      setLoaded(true);
+    }
   }, [id, isEdit]);
 
   const set = (k: keyof typeof EMPTY, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -45,9 +59,11 @@ export default function OrgDomainForm() {
     try {
       if (isEdit && id) {
         await updateOrgDomain(id, form);
+        clear();
         navigate(`/org-domain/${id}`);
       } else {
         const created = await createOrgDomain(form);
+        clear();
         navigate(`/org-domain/${created.id}`);
       }
     } catch (e: unknown) {
@@ -85,6 +101,18 @@ export default function OrgDomainForm() {
           </h1>
         </div>
       </div>
+
+      {restored && (
+        <div className="px-6 pt-4 max-w-[800px] mx-auto">
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-warning/30 bg-warning/8 text-warning text-sm">
+            <Icon name="RotateCcw" size={15} />
+            <span>Восстановлен несохранённый черновик</span>
+            <button onClick={() => { clear(); setForm(EMPTY); setRestored(false); }} className="ml-auto text-xs underline underline-offset-2 hover:opacity-70">
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="px-6 py-8 max-w-[800px] mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">

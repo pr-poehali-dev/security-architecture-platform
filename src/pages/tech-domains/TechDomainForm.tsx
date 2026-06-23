@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
+import { useFormCache } from '@/hooks/useFormCache';
 import {
   fetchTechDomain,
   fetchOrgDomainsForPicker,
@@ -24,6 +25,7 @@ export default function TechDomainForm() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const cacheKey = `form:tech-domain:${id ?? 'new'}`;
 
   const [form, setForm] = useState(EMPTY);
   const [domainId, setDomainId] = useState('');
@@ -32,6 +34,12 @@ export default function TechDomainForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [restored, setRestored] = useState(false);
+
+  const { clear } = useFormCache(cacheKey, form, (cached) => {
+    setForm(cached);
+    setRestored(true);
+  });
 
   useEffect(() => {
     const loadOrg = fetchOrgDomainsForPicker();
@@ -39,13 +47,12 @@ export default function TechDomainForm() {
     if (isEdit && id) {
       Promise.all([fetchTechDomain(id), loadOrg])
         .then(([d, org]) => {
-          setForm({
-            name: d.name,
-            owner: d.owner,
-            status: d.status,
-            description: d.description,
-            orgDomainIds: d.orgDomainIds,
-            changeNote: '',
+          setForm((prev) => {
+            const hasCache = prev.name !== '';
+            return hasCache ? prev : {
+              name: d.name, owner: d.owner, status: d.status,
+              description: d.description, orgDomainIds: d.orgDomainIds, changeNote: '',
+            };
           });
           setDomainId(d.id);
           setCurrentVersion(d.version);
@@ -81,9 +88,11 @@ export default function TechDomainForm() {
     try {
       if (isEdit && id) {
         await updateTechDomain(id, form);
+        clear();
         navigate(`/tech-domain/${id}`);
       } else {
         const created = await createTechDomain(form);
+        clear();
         navigate(`/tech-domain/${created.id}`);
       }
     } catch (e: unknown) {
@@ -127,6 +136,18 @@ export default function TechDomainForm() {
           </h1>
         </div>
       </div>
+
+      {restored && (
+        <div className="px-6 pt-4 max-w-[900px] mx-auto">
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-warning/30 bg-warning/8 text-warning text-sm">
+            <Icon name="RotateCcw" size={15} />
+            <span>Восстановлен несохранённый черновик</span>
+            <button onClick={() => { clear(); setForm(EMPTY); setRestored(false); }} className="ml-auto text-xs underline underline-offset-2 hover:opacity-70">
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="px-6 py-8 max-w-[900px] mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
