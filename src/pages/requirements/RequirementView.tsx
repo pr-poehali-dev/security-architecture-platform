@@ -105,7 +105,7 @@ export default function RequirementView() {
           {req.description && (
             <div className="rounded-lg border border-border bg-card p-5">
               <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-3">Описание</div>
-              <MarkdownViewer content={req.description} />
+              <MarkdownViewer>{req.description}</MarkdownViewer>
             </div>
           )}
 
