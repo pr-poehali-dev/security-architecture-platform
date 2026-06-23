@@ -36,7 +36,7 @@ const EMPTY: RequirementFormData = {
 
 function SectionCard({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="rounded-xl border border-border bg-card overflow-visible">
       <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-muted/30">
         <Icon name={icon as 'FileText'} size={15} className="text-accent" />
         <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{title}</span>
