@@ -79,7 +79,7 @@ export default function MermaidEditor({ technologyId, diagrams, onSaved }: Props
             </button>
           </div>
           <div className="p-4">
-            <MermaidPreview code={d.code} />
+            <MermaidPreview code={d.code} title={d.title} />
           </div>
         </div>
       ))}
@@ -119,10 +119,10 @@ export default function MermaidEditor({ technologyId, diagrams, onSaved }: Props
               <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-1.5">
                 Предпросмотр
               </label>
-              <div className="rounded-md border border-border bg-muted/30 p-4 min-h-[220px] flex items-center justify-center">
+              <div className="rounded-md border border-border bg-muted/30 p-3 min-h-[220px]">
                 {code.trim()
-                  ? <MermaidPreview code={code} className="w-full" />
-                  : <span className="text-xs text-muted-foreground">Введите код для предпросмотра</span>
+                  ? <MermaidPreview code={code} title={title} className="w-full" />
+                  : <div className="flex items-center justify-center h-[180px] text-xs text-muted-foreground">Введите код для предпросмотра</div>
                 }
               </div>
             </div>

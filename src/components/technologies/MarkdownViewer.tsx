@@ -1,7 +1,59 @@
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
+import hljs from 'highlight.js';
 import Icon from '@/components/ui/icon';
+
+// Тёмная тема highlight.js
+import 'highlight.js/styles/github-dark.css';
+
+function CodeBlock({ className, children }: { className?: string; children: string }) {
+  const lang = className?.replace('language-', '') ?? '';
+  const [copied, setCopied] = useState(false);
+  const codeRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!codeRef.current) return;
+    if (lang && hljs.getLanguage(lang)) {
+      hljs.highlightElement(codeRef.current);
+    } else {
+      hljs.highlightElement(codeRef.current);
+    }
+  }, [children, lang]);
+
+  const copy = () => {
+    navigator.clipboard.writeText(children).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="my-4 rounded-lg border border-border overflow-hidden group/code">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-border">
+        <span className="text-[11px] font-mono uppercase tracking-widest text-[#8b949e]">
+          {lang || 'code'}
+        </span>
+        <button
+          onClick={copy}
+          className="flex items-center gap-1.5 text-[11px] text-[#8b949e] hover:text-white transition-colors opacity-0 group-hover/code:opacity-100"
+        >
+          <Icon name={copied ? 'Check' : 'Copy'} size={12} />
+          {copied ? 'Скопировано' : 'Копировать'}
+        </button>
+      </div>
+      <pre className="overflow-x-auto m-0 p-0 bg-[#0d1117]">
+        <code
+          ref={codeRef}
+          className={`hljs language-${lang} text-xs leading-relaxed block p-4`}
+        >
+          {children}
+        </code>
+      </pre>
+    </div>
+  );
+}
 
 const components: Components = {
   h1: ({ children }) => (
@@ -52,12 +104,12 @@ const components: Components = {
     <ul className="mb-4 space-y-1.5 pl-0">{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="mb-4 space-y-1.5 pl-0 list-none counter-reset-[item]">{children}</ol>
+    <ol className="mb-4 space-y-1.5 pl-0 list-none">{children}</ol>
   ),
   li: ({ children, ...props }) => {
     const isOrdered = (props as { ordered?: boolean }).ordered;
     return (
-      <li className={`flex gap-2.5 text-sm text-foreground/85 leading-6 ${isOrdered ? 'items-start' : 'items-start'}`}>
+      <li className="flex gap-2.5 text-sm text-foreground/85 leading-6 items-start">
         {!isOrdered && (
           <span className="mt-2 size-1.5 rounded-full bg-accent shrink-0" />
         )}
@@ -70,26 +122,14 @@ const components: Components = {
       <div className="text-sm text-muted-foreground italic leading-relaxed [&>p]:mb-0">{children}</div>
     </blockquote>
   ),
-  code: ({ className, children, ...props }) => {
-    const isInline = !(props as { node?: { tagName?: string } }).node?.tagName;
+  pre: ({ children }) => <>{children}</>,
+  code: ({ className, children }) => {
     const isBlock = className?.startsWith('language-');
-
-    if (isBlock || !isInline) {
-      const lang = className?.replace('language-', '') ?? '';
+    if (isBlock) {
       return (
-        <div className="my-4 rounded-lg border border-border overflow-hidden">
-          {lang && (
-            <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
-              <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">{lang}</span>
-              <Icon name="Code" size={14} className="text-muted-foreground" />
-            </div>
-          )}
-          <pre className="overflow-x-auto p-4 bg-muted/50 m-0">
-            <code className="text-xs font-mono text-foreground/90 leading-relaxed">
-              {children}
-            </code>
-          </pre>
-        </div>
+        <CodeBlock className={className}>
+          {String(children).replace(/\n$/, '')}
+        </CodeBlock>
       );
     }
     return (
@@ -98,7 +138,6 @@ const components: Components = {
       </code>
     );
   },
-  pre: ({ children }) => <>{children}</>,
   hr: () => <hr className="my-6 border-border" />,
   table: ({ children }) => (
     <div className="my-4 overflow-x-auto rounded-lg border border-border">
@@ -130,12 +169,7 @@ const components: Components = {
   ),
   input: ({ type, checked }) =>
     type === 'checkbox' ? (
-      <input
-        type="checkbox"
-        checked={checked}
-        readOnly
-        className="mr-2 accent-accent"
-      />
+      <input type="checkbox" checked={checked} readOnly className="mr-2 accent-accent" />
     ) : null,
 };
 

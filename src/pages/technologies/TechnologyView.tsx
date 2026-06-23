@@ -158,7 +158,7 @@ export default function TechnologyView() {
                       </div>
                     )}
                     <div className="p-4">
-                      <MermaidPreview code={d.code} />
+                      <MermaidPreview code={d.code} title={d.title} />
                     </div>
                   </div>
                 ))}
