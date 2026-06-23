@@ -303,7 +303,10 @@ export default function RequirementForm() {
             </div>
             {mdPreview ? (
               <div className="min-h-[160px] rounded-md border border-border bg-background/50 p-4">
-                <MarkdownViewer content={form.description || '_Пусто_'} />
+                {form.description
+                  ? <MarkdownViewer>{form.description}</MarkdownViewer>
+                  : <p className="text-sm text-muted-foreground italic">Пусто — введите текст в режиме редактора</p>
+                }
               </div>
             ) : (
               <textarea
