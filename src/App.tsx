@@ -10,6 +10,9 @@ import OrgDomainForm from "./pages/org-domains/OrgDomainForm";
 import TechDomainList from "./pages/tech-domains/TechDomainList";
 import TechDomainView from "./pages/tech-domains/TechDomainView";
 import TechDomainForm from "./pages/tech-domains/TechDomainForm";
+import TechnologyList from "./pages/technologies/TechnologyList";
+import TechnologyView from "./pages/technologies/TechnologyView";
+import TechnologyForm from "./pages/technologies/TechnologyForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +37,12 @@ const App = () => (
           <Route path="/tech-domain/new" element={<Layout section="tech-domain"><TechDomainForm /></Layout>} />
           <Route path="/tech-domain/:id" element={<Layout section="tech-domain"><TechDomainView /></Layout>} />
           <Route path="/tech-domain/:id/edit" element={<Layout section="tech-domain"><TechDomainForm /></Layout>} />
+
+          {/* Технологии */}
+          <Route path="/technologies" element={<Layout section="technologies"><TechnologyList /></Layout>} />
+          <Route path="/technologies/new" element={<Layout section="technologies"><TechnologyForm /></Layout>} />
+          <Route path="/technologies/:id" element={<Layout section="technologies"><TechnologyView /></Layout>} />
+          <Route path="/technologies/:id/edit" element={<Layout section="technologies"><TechnologyForm /></Layout>} />
 
           {/* Остальные разделы */}
           <Route path="/:section" element={<Layout />} />
