@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import Icon from '@/components/ui/icon';
 import MermaidPreview from '@/components/technologies/MermaidPreview';
+import MarkdownViewer from '@/components/technologies/MarkdownViewer';
 import { fetchTechnology, TechnologyDetail, formatBytes } from '@/api/technologies';
 
 const STATUS_STYLE: Record<string, string> = {
@@ -136,17 +135,7 @@ export default function TechnologyView() {
               <h2 className="font-semibold mb-4 flex items-center gap-2">
                 <Icon name="FileText" size={18} className="text-accent" /> Описание
               </h2>
-              <div className="prose prose-sm prose-invert max-w-none
-                prose-headings:font-semibold prose-headings:text-foreground
-                prose-p:text-foreground/80 prose-p:leading-relaxed
-                prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-accent prose-code:text-xs
-                prose-pre:bg-muted prose-pre:border prose-pre:border-border prose-pre:rounded-lg
-                prose-a:text-accent prose-a:no-underline hover:prose-a:underline
-                prose-blockquote:border-l-accent prose-blockquote:text-muted-foreground
-                prose-strong:text-foreground prose-li:text-foreground/80
-                prose-hr:border-border prose-table:text-sm">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{tech.description}</ReactMarkdown>
-              </div>
+              <MarkdownViewer>{tech.description}</MarkdownViewer>
             </section>
           )}
 

@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import Icon from '@/components/ui/icon';
 import TagInput from '@/components/technologies/TagInput';
 import MermaidEditor from '@/components/technologies/MermaidEditor';
 import FileAttachments from '@/components/technologies/FileAttachments';
+import MarkdownViewer from '@/components/technologies/MarkdownViewer';
 import {
   fetchTechnology,
   createTechnology,
@@ -252,18 +251,10 @@ export default function TechnologyForm() {
               </div>
 
               {mdPreview ? (
-                <div className="min-h-[400px] rounded-md border border-border bg-muted/20 p-5
-                  prose prose-sm prose-invert max-w-none
-                  prose-headings:font-semibold prose-headings:text-foreground
-                  prose-p:text-foreground/80 prose-p:leading-relaxed
-                  prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-accent prose-code:text-xs
-                  prose-pre:bg-muted prose-pre:border prose-pre:border-border prose-pre:rounded-lg
-                  prose-a:text-accent prose-blockquote:border-l-accent prose-blockquote:text-muted-foreground
-                  prose-strong:text-foreground prose-li:text-foreground/80
-                  prose-hr:border-border">
+                <div className="min-h-[400px] rounded-md border border-border bg-muted/20 p-5">
                   {form.description
-                    ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{form.description}</ReactMarkdown>
-                    : <p className="text-muted-foreground italic">Пусто — введите текст в режиме редактора</p>
+                    ? <MarkdownViewer>{form.description}</MarkdownViewer>
+                    : <p className="text-sm text-muted-foreground italic">Пусто — введите текст в режиме редактора</p>
                   }
                 </div>
               ) : (
