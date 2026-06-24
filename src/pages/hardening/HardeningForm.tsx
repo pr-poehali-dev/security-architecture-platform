@@ -12,6 +12,7 @@ import {
   fetchSolutionsSuggest,
   fetchReqContent,
   saveReqMarkdown,
+  saveEnvStatus,
   uploadReqImage,
   HardeningStatus,
   HardeningFormData,
@@ -20,6 +21,11 @@ import {
   RequirementDomainGroup,
   ReqContent,
   ReqImage,
+  EnvName,
+  EnvStatus,
+  EnvStatusMap,
+  ENVS,
+  DEFAULT_ENV_STATUS,
   STATUS_OPTIONS,
 } from '@/api/hardening';
 
@@ -46,6 +52,15 @@ const PRIORITY_LABELS: Record<string, { label: string; cls: string }> = {
   low:      { label: 'LOW',      cls: 'bg-blue-500/20 text-blue-400' },
 };
 
+// Стили ячейки статуса среды
+const ENV_STATUS_STYLE: Record<EnvStatus, { cell: string; icon: string; label: string }> = {
+  required:     { cell: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20', icon: 'Check',           label: 'Обязательно'  },
+  conditional:  { cell: 'bg-amber-500/15  text-amber-700  dark:text-amber-300  border-amber-500/20',  icon: 'TriangleAlert',   label: 'Условие'      },
+  not_required: { cell: 'bg-muted/60 text-muted-foreground border-border',                              icon: 'Minus',           label: 'Не требуется' },
+};
+
+const ENV_STATUS_CYCLE: EnvStatus[] = ['required', 'conditional', 'not_required'];
+
 // Панель редактирования контента одного требования
 function ReqEditor({
   hardeningId,
@@ -54,21 +69,31 @@ function ReqEditor({
   hardeningId: string;
   req: RequirementRef;
 }) {
-  const [content, setContent] = useState<ReqContent>({ markdown: '', updatedAt: null, images: [] });
+  const [content, setContent] = useState<ReqContent>({
+    markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS },
+  });
   const [loadingContent, setLoadingContent] = useState(true);
   const [mdValue, setMdValue] = useState('');
   const [mdPreview, setMdPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingEnv, setSavingEnv] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [envSaved, setEnvSaved] = useState(false);
+  const [localEnv, setLocalEnv] = useState<EnvStatusMap>({ ...DEFAULT_ENV_STATUS });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const envSaveTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (!hardeningId) return;
     setLoadingContent(true);
     fetchReqContent(hardeningId, req.id)
-      .then((c) => { setContent(c); setMdValue(c.markdown); })
+      .then((c) => {
+        setContent(c);
+        setMdValue(c.markdown);
+        setLocalEnv(c.envStatus ?? { ...DEFAULT_ENV_STATUS });
+      })
       .finally(() => setLoadingContent(false));
   }, [hardeningId, req.id]);
 
@@ -85,6 +110,23 @@ function ReqEditor({
       setSaving(false);
     }
   }, [hardeningId, req.id]);
+
+  const cycleEnv = async (env: EnvName) => {
+    if (!hardeningId) return;
+    const cur = localEnv[env];
+    const next = ENV_STATUS_CYCLE[(ENV_STATUS_CYCLE.indexOf(cur) + 1) % ENV_STATUS_CYCLE.length];
+    const updated = { ...localEnv, [env]: next };
+    setLocalEnv(updated);
+    setSavingEnv(true);
+    try {
+      await saveEnvStatus(hardeningId, req.id, updated);
+      setEnvSaved(true);
+      clearTimeout(envSaveTimer.current);
+      envSaveTimer.current = setTimeout(() => setEnvSaved(false), 1500);
+    } finally {
+      setSavingEnv(false);
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -106,7 +148,7 @@ function ReqEditor({
   );
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col h-full gap-5">
       {/* Req header */}
       <div className="pb-3 border-b border-border">
         <div className="text-xs font-mono text-muted-foreground mb-1">{req.id}</div>
@@ -115,6 +157,54 @@ function ReqEditor({
           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
             <Icon name="Cpu" size={12} /> {req.techName}
           </div>
+        )}
+      </div>
+
+      {/* Матрица сред */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <Icon name="Layers" size={12} /> Применимость по средам
+          </span>
+          {savingEnv && <Icon name="Loader2" size={12} className="animate-spin text-muted-foreground" />}
+          {envSaved && !savingEnv && (
+            <span className="text-[11px] text-success flex items-center gap-1">
+              <Icon name="Check" size={11} /> Сохранено
+            </span>
+          )}
+        </div>
+        <div className="rounded-lg border border-border overflow-hidden">
+          {/* Header row */}
+          <div className="grid grid-cols-5 border-b border-border bg-muted/30">
+            {ENVS.map(({ key, label }) => (
+              <div key={key} className="px-2 py-2 text-center text-[11px] font-semibold text-muted-foreground border-r last:border-r-0 border-border">
+                {label}
+              </div>
+            ))}
+          </div>
+          {/* Status row */}
+          <div className="grid grid-cols-5">
+            {ENVS.map(({ key, label }) => {
+              const st = localEnv[key] as EnvStatus;
+              const style = ENV_STATUS_STYLE[st];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  title={`${label}: нажмите для смены статуса`}
+                  onClick={() => cycleEnv(key)}
+                  disabled={!hardeningId}
+                  className={`flex flex-col items-center justify-center gap-1 py-3 px-2 border-r last:border-r-0 border-border transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed rounded-none ${style.cell}`}
+                >
+                  <Icon name={style.icon} size={14} />
+                  <span className="text-[10px] font-semibold leading-tight text-center">{style.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {!hardeningId && (
+          <p className="text-[11px] text-muted-foreground">Сохраните карточку, чтобы задавать статусы сред</p>
         )}
       </div>
 
@@ -142,7 +232,7 @@ function ReqEditor({
         </div>
 
         {mdPreview ? (
-          <div className="flex-1 overflow-y-auto rounded-md border border-border bg-card/50 p-4 min-h-[200px]">
+          <div className="flex-1 overflow-y-auto rounded-md border border-border bg-card/50 p-4 min-h-[160px]">
             {mdValue
               ? <MarkdownViewer>{mdValue}</MarkdownViewer>
               : <p className="text-muted-foreground text-sm">Нет содержимого</p>}
@@ -151,9 +241,9 @@ function ReqEditor({
           <textarea
             value={mdValue}
             onChange={(e) => setMdValue(e.target.value)}
-            rows={10}
+            rows={8}
             placeholder="Опишите инструкцию по настройке в формате Markdown…"
-            className="flex-1 w-full px-3 py-2.5 rounded-md border border-border bg-background text-sm font-mono outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none min-h-[200px]"
+            className="flex-1 w-full px-3 py-2.5 rounded-md border border-border bg-background text-sm font-mono outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none min-h-[160px]"
           />
         )}
 

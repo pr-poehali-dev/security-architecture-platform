@@ -5,10 +5,12 @@ GET  /                              — список всех карточек
 GET  /?id=...                       — карточка + версии + теги + связи + контент требований
 GET  /?tags_suggest=...             — автодополнение тегов
 GET  /?solutions_suggest=...        — поиск технических решений
-GET  /?req_content&hid=...&rid=...  — Markdown + изображения для требования
+GET  /?req_content&hid=...&rid=...  — Markdown + изображения + env_status для требования
+GET  /?env_status&hid=...&rid=...  — статусы сред для требования
 POST /                              — создать карточку
 PUT  /                              — обновить карточку
 PUT  /?action=save_req_content      — сохранить Markdown для требования
+PUT  /?action=save_env_status       — сохранить статусы сред для требования
 POST /?action=upload_req_image      — загрузить изображение для требования
 """
 
@@ -175,6 +177,39 @@ def get_requirements_by_domain(cur, solution_ids: list) -> list:
     return list(groups.values())
 
 
+ENVS = ["prod", "prodlike", "stage", "test", "dev"]
+ENV_STATUSES = ["required", "not_required", "conditional"]
+
+
+def get_env_status(cur, hid: str, rid: str) -> dict:
+    cur.execute(
+        "SELECT env, status FROM hardening_req_env_status WHERE hardening_id = %s AND requirement_id = %s",
+        (hid, rid),
+    )
+    rows = cur.fetchall()
+    result = {env: "not_required" for env in ENVS}
+    for row in rows:
+        if row[0] in result:
+            result[row[0]] = row[1]
+    return result
+
+
+def save_env_status(cur, hid: str, rid: str, statuses: dict):
+    for env in ENVS:
+        status = statuses.get(env, "not_required")
+        if status not in ENV_STATUSES:
+            status = "not_required"
+        cur.execute(
+            """
+            INSERT INTO hardening_req_env_status (hardening_id, requirement_id, env, status, updated_at)
+            VALUES (%s, %s, %s, %s, now())
+            ON CONFLICT (hardening_id, requirement_id, env)
+            DO UPDATE SET status = EXCLUDED.status, updated_at = now()
+            """,
+            (hid, rid, env, status),
+        )
+
+
 def get_req_content(cur, hid: str, rid: str) -> dict:
     cur.execute(
         "SELECT markdown, updated_at FROM hardening_req_content WHERE hardening_id = %s AND requirement_id = %s",
@@ -197,7 +232,8 @@ def get_req_content(cur, hid: str, rid: str) -> dict:
          "url": f"{CDN_BASE}/hardening/{r[2].split('/')[-1]}"}
         for r in cur.fetchall()
     ]
-    return {"markdown": markdown, "updatedAt": updated_at, "images": images}
+    env_status = get_env_status(cur, hid, rid)
+    return {"markdown": markdown, "updatedAt": updated_at, "images": images, "envStatus": env_status}
 
 
 def row_to_dict(row, tags, cur_version, versions=None, solutions=None, requirements_by_domain=None):
@@ -345,6 +381,22 @@ def handler(event: dict, context) -> dict:
         content = get_req_content(cur, hid, rid)
         conn.close()
         return ok(content)
+
+    # Сохранить статусы сред для требования
+    if action == "save_env_status" and method == "PUT":
+        body = parse_body(event)
+        hid = body.get("hardeningId", "")
+        rid = body.get("requirementId", "")
+        statuses = body.get("statuses", {})
+        if not hid or not rid:
+            return err("Нужны hardeningId и requirementId")
+        conn = get_conn()
+        cur = conn.cursor()
+        save_env_status(cur, hid, rid, statuses)
+        conn.commit()
+        result = get_env_status(cur, hid, rid)
+        conn.close()
+        return ok(result)
 
     # Загрузить изображение для требования
     if action == "upload_req_image" and method == "POST":

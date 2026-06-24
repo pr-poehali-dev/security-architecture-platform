@@ -131,15 +131,49 @@ export interface ReqImage {
   url: string;
 }
 
+export type EnvName = 'prod' | 'prodlike' | 'stage' | 'test' | 'dev';
+export type EnvStatus = 'required' | 'not_required' | 'conditional';
+export type EnvStatusMap = Record<EnvName, EnvStatus>;
+
+export const ENVS: { key: EnvName; label: string }[] = [
+  { key: 'prod',     label: 'Prod'     },
+  { key: 'prodlike', label: 'ProdLike' },
+  { key: 'stage',    label: 'Stage'    },
+  { key: 'test',     label: 'Test'     },
+  { key: 'dev',      label: 'Dev'      },
+];
+
+export const ENV_STATUS_OPTIONS: { value: EnvStatus; label: string }[] = [
+  { value: 'required',     label: 'Обязательно'  },
+  { value: 'conditional',  label: 'Условие'      },
+  { value: 'not_required', label: 'Не требуется' },
+];
+
+export const DEFAULT_ENV_STATUS: EnvStatusMap = {
+  prod: 'not_required', prodlike: 'not_required', stage: 'not_required',
+  test: 'not_required', dev: 'not_required',
+};
+
 export interface ReqContent {
   markdown: string;
   updatedAt: string | null;
   images: ReqImage[];
+  envStatus: EnvStatusMap;
 }
 
 export async function fetchReqContent(hardeningId: string, requirementId: string): Promise<ReqContent> {
   const res = await fetch(`${BASE}?req_content&hid=${encodeURIComponent(hardeningId)}&rid=${encodeURIComponent(requirementId)}`);
-  if (!res.ok) return { markdown: '', updatedAt: null, images: [] };
+  if (!res.ok) return { markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS } };
+  return res.json();
+}
+
+export async function saveEnvStatus(hardeningId: string, requirementId: string, statuses: EnvStatusMap): Promise<EnvStatusMap> {
+  const res = await fetch(`${BASE}?action=save_env_status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hardeningId, requirementId, statuses }),
+  });
+  if (!res.ok) throw new Error('Ошибка сохранения статусов сред');
   return res.json();
 }
 
