@@ -57,15 +57,17 @@ const REQ_STATUS_STYLE: Record<string, string> = {
 };
 
 // ── Suggest-пикер ──────────────────────────────────────────────────────────────
-function SuggestPicker<T extends { id: string; name: string }>({
+type SuggestItem = { id: string; name: string };
+
+function SuggestPicker({
   label, icon, selected, onRemove, onAdd, fetchFn, renderBadge,
 }: {
   label: string; icon: string;
-  selected: T[];
+  selected: SuggestItem[];
   onRemove: (id: string) => void;
-  onAdd: (item: T) => void;
-  fetchFn: (q: string) => Promise<T[]>;
-  renderBadge?: (item: T) => React.ReactNode;
+  onAdd: (item: SuggestItem) => void;
+  fetchFn: (q: string) => Promise<SuggestItem[]>;
+  renderBadge?: (item: SuggestItem) => React.ReactNode;
 }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<T[]>([]);
@@ -530,48 +532,57 @@ export default function ArchTemplateForm() {
           <div className="max-w-3xl flex flex-col gap-8">
 
             {/* Связанные шаблоны */}
-            <SuggestPicker<TemplateRef>
+            <SuggestPicker
               label="Связанные шаблоны"
               icon="Boxes"
               selected={selectedTemplates}
-              onAdd={(item) => setSelectedTemplates((p) => [...p, item])}
+              onAdd={(item) => setSelectedTemplates((p) => [...p, item as TemplateRef])}
               onRemove={(rid) => setSelectedTemplates((p) => p.filter((x) => x.id !== rid))}
-              fetchFn={fetchTemplatesSuggest}
-              renderBadge={(item) => (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${item.templateType === 'technical' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
-                  {item.typeLabel}
-                </span>
-              )}
+              fetchFn={fetchTemplatesSuggest as (q: string) => Promise<SuggestItem[]>}
+              renderBadge={(item) => {
+                const t = item as TemplateRef;
+                return (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${t.templateType === 'technical' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                    {t.typeLabel}
+                  </span>
+                );
+              }}
             />
 
             {/* Технологии */}
-            <SuggestPicker<TechRef>
+            <SuggestPicker
               label="Связанные технологии"
               icon="Cpu"
               selected={selectedTechs}
-              onAdd={(item) => { setSelectedTechs((p) => [...p, item]); }}
+              onAdd={(item) => setSelectedTechs((p) => [...p, item as TechRef])}
               onRemove={(rid) => setSelectedTechs((p) => p.filter((x) => x.id !== rid))}
-              fetchFn={fetchTechSuggest}
-              renderBadge={(item) => (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${STATUS_STYLE[item.status] ?? 'bg-muted text-muted-foreground'}`}>
-                  {item.statusLabel}
-                </span>
-              )}
+              fetchFn={fetchTechSuggest as (q: string) => Promise<SuggestItem[]>}
+              renderBadge={(item) => {
+                const t = item as TechRef;
+                return (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${STATUS_STYLE[t.status] ?? 'bg-muted text-muted-foreground'}`}>
+                    {t.statusLabel}
+                  </span>
+                );
+              }}
             />
 
             {/* Решения */}
-            <SuggestPicker<DecisionRef>
+            <SuggestPicker
               label="Связанные решения"
               icon="Workflow"
               selected={selectedDecisions}
-              onAdd={(item) => { setSelectedDecisions((p) => [...p, item]); }}
+              onAdd={(item) => setSelectedDecisions((p) => [...p, item as DecisionRef])}
               onRemove={(rid) => setSelectedDecisions((p) => p.filter((x) => x.id !== rid))}
-              fetchFn={fetchDecisionsSuggest}
-              renderBadge={(item) => (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${item.decisionType === 'technical' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
-                  {item.typeLabel}
-                </span>
-              )}
+              fetchFn={fetchDecisionsSuggest as (q: string) => Promise<SuggestItem[]>}
+              renderBadge={(item) => {
+                const d = item as DecisionRef;
+                return (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${d.decisionType === 'technical' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                    {d.typeLabel}
+                  </span>
+                );
+              }}
             />
 
             {/* Файлы и Mermaid — только при редактировании */}
