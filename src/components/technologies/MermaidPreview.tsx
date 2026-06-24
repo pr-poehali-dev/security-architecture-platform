@@ -45,6 +45,7 @@ function ZoomControls({ onFullscreen }: { onFullscreen: () => void }) {
   return (
     <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
       <button
+        type="button"
         onClick={() => zoomIn()}
         title="Увеличить"
         className="size-7 rounded border border-border bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:border-accent transition-colors flex items-center justify-center"
@@ -52,6 +53,7 @@ function ZoomControls({ onFullscreen }: { onFullscreen: () => void }) {
         <Icon name="Plus" size={13} />
       </button>
       <button
+        type="button"
         onClick={() => zoomOut()}
         title="Уменьшить"
         className="size-7 rounded border border-border bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:border-accent transition-colors flex items-center justify-center"
@@ -59,6 +61,7 @@ function ZoomControls({ onFullscreen }: { onFullscreen: () => void }) {
         <Icon name="Minus" size={13} />
       </button>
       <button
+        type="button"
         onClick={() => resetTransform()}
         title="Сбросить"
         className="size-7 rounded border border-border bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:border-accent transition-colors flex items-center justify-center"
@@ -66,6 +69,7 @@ function ZoomControls({ onFullscreen }: { onFullscreen: () => void }) {
         <Icon name="Crosshair" size={13} />
       </button>
       <button
+        type="button"
         onClick={onFullscreen}
         title="На весь экран"
         className="size-7 rounded border border-border bg-card/90 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:border-accent transition-colors flex items-center justify-center"
@@ -144,6 +148,7 @@ function FullscreenModal({ svg, title, theme, onThemeChange, onClose }: ModalPro
               {THEMES.map((t) => (
                 <button
                   key={t.value}
+                  type="button"
                   onClick={() => onThemeChange(t.value)}
                   className={`text-[11px] px-2.5 py-1 rounded border transition-colors ${
                     theme === t.value
@@ -157,6 +162,7 @@ function FullscreenModal({ svg, title, theme, onThemeChange, onClose }: ModalPro
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="size-8 rounded border border-border text-muted-foreground hover:text-foreground hover:border-destructive transition-colors flex items-center justify-center"
           >
