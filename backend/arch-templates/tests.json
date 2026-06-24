@@ -1,0 +1,45 @@
+{
+  "tests": [
+    {
+      "name": "POST create template",
+      "method": "POST",
+      "path": "/",
+      "body": {"name": "Test Template", "owner": "Test", "status": "in_development", "templateType": "technical", "description": "", "tags": [], "relatedTemplateIds": [], "technologyIds": [], "decisionIds": []},
+      "expectedStatus": 201,
+      "expectedBody": {"name": "Test Template"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET list returns 200",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"id": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Tags suggest vault",
+      "method": "GET",
+      "path": "/?tags_suggest=vault",
+      "expectedStatus": 200,
+      "expectedBody": {"name": "vault"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Tech suggest Nginx",
+      "method": "GET",
+      "path": "/?tech_suggest=Nginx",
+      "expectedStatus": 200,
+      "expectedBody": {"name": "Nginx"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Decisions suggest empty",
+      "method": "GET",
+      "path": "/?decisions_suggest=Keycloak",
+      "expectedStatus": 200,
+      "expectedBody": {"id": "tos-3"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

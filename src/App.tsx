@@ -22,6 +22,9 @@ import DecisionForm from "./pages/decisions/DecisionForm";
 import HardeningList from "./pages/hardening/HardeningList";
 import HardeningView from "./pages/hardening/HardeningView";
 import HardeningForm from "./pages/hardening/HardeningForm";
+import ArchTemplateList from "./pages/arch-templates/ArchTemplateList";
+import ArchTemplateView from "./pages/arch-templates/ArchTemplateView";
+import ArchTemplateForm from "./pages/arch-templates/ArchTemplateForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +73,12 @@ const App = () => (
           <Route path="/hardening/new" element={<Layout section="hardening"><HardeningForm /></Layout>} />
           <Route path="/hardening/:id" element={<Layout section="hardening"><HardeningView /></Layout>} />
           <Route path="/hardening/:id/edit" element={<Layout section="hardening"><HardeningForm /></Layout>} />
+
+          {/* Шаблоны архитектур */}
+          <Route path="/templates" element={<Layout section="templates"><ArchTemplateList /></Layout>} />
+          <Route path="/templates/new" element={<Layout section="templates"><ArchTemplateForm /></Layout>} />
+          <Route path="/templates/:id" element={<Layout section="templates"><ArchTemplateView /></Layout>} />
+          <Route path="/templates/:id/edit" element={<Layout section="templates"><ArchTemplateForm /></Layout>} />
 
           {/* Остальные разделы */}
           <Route path="/:section" element={<Layout />} />
