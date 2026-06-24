@@ -481,7 +481,7 @@ export default function HardeningView() {
                   </div>
                   {/* Контент */}
                   <div className="flex-1 overflow-y-auto px-5 py-5">
-                    <ReqViewer hardeningId={item.id} req={activeReq} />
+                    <ReqViewer key={activeReq.id} hardeningId={item.id} req={activeReq} />
                   </div>
                 </>
               ) : (
