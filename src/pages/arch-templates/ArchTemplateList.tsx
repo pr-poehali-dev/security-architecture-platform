@@ -24,7 +24,7 @@ export default function ArchTemplateList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [sortCol, setSortCol] = useState<'name' | 'templateType' | 'owner' | 'status' | 'version'>('name');
+  const [sortCol, setSortCol] = useState<'id' | 'name' | 'templateType' | 'owner' | 'status' | 'version'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
@@ -53,6 +53,7 @@ export default function ArchTemplateList() {
     })
     .sort((a, b) => {
       const v = (x: ArchTemplate) => {
+        if (sortCol === 'id')           return x.id.toLowerCase();
         if (sortCol === 'name')         return x.name.toLowerCase();
         if (sortCol === 'templateType') return x.typeLabel.toLowerCase();
         if (sortCol === 'owner')        return (x.owner || '').toLowerCase();
@@ -137,6 +138,7 @@ export default function ArchTemplateList() {
           <span className="text-[11px] text-muted-foreground uppercase tracking-widest">Сортировка:</span>
           <div className="flex items-center rounded-md border border-border bg-background overflow-hidden text-xs">
             {([
+              ['id',           'ID'       ],
               ['name',         'Название' ],
               ['templateType', 'Тип'      ],
               ['owner',        'Владелец' ],
