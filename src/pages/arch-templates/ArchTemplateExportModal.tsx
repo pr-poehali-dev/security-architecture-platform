@@ -416,21 +416,112 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               {/* Требования */}
               {(data.requirementsByDomain ?? []).length > 0 && (
                 <Section icon="ListChecks" title="Требования" sectionKey="requirements" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-4">
                     {(data.requirementsByDomain ?? []).map((g: ExportRequirementGroup) => (
                       <div key={g.domainId ?? '__none__'}>
-                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-1">
+                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1">
                           <Icon name="Layers" size={9} /> {g.domainName}
                         </div>
-                        <div className="flex flex-col gap-1">
-                          {g.requirements.map((r: ExportRequirement) => (
-                            <Chip
-                              key={r.id}
-                              label={`${r.id} — ${r.shortDesc}`}
-                              removed={excluded.has(`req-${r.id}`)}
-                              onRemove={() => toggle(`req-${r.id}`)}
-                            />
-                          ))}
+                        <div className="flex flex-col gap-2">
+                          {g.requirements.map((r: ExportRequirement) => {
+                            const removed = excluded.has(`req-${r.id}`);
+                            return (
+                              <div
+                                key={r.id}
+                                className={`rounded-md border transition-colors ${removed ? 'border-border/30 opacity-40' : 'border-border bg-muted/10'}`}
+                              >
+                                {/* Заголовок требования */}
+                                <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-border/50">
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-xs font-medium">{r.shortDesc}</span>
+                                    <span className="ml-2 text-[10px] font-mono text-muted-foreground">{r.id}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggle(`req-${r.id}`)}
+                                    className={`shrink-0 text-[10px] px-2 py-0.5 rounded border transition-colors ${removed ? 'border-accent/40 text-accent hover:bg-accent/10' : 'border-destructive/30 text-destructive hover:bg-destructive/10'}`}
+                                  >
+                                    {removed ? 'Вернуть' : 'Убрать'}
+                                  </button>
+                                </div>
+                                {/* Детали */}
+                                {!removed && (
+                                  <div className="px-3 py-2 flex flex-col gap-2">
+                                    {/* Теги-бейджи */}
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {r.reqTypeLabel && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium">{r.reqTypeLabel}</span>
+                                      )}
+                                      {r.isProcurement && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 font-medium flex items-center gap-1">
+                                          <Icon name="ShoppingCart" size={9} /> Закупки
+                                        </span>
+                                      )}
+                                      {r.source === 'hardening' && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 flex items-center gap-1">
+                                          <Icon name="ShieldCheck" size={9} /> Харденинг
+                                        </span>
+                                      )}
+                                      {r.techName && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
+                                          <Icon name="Cpu" size={9} /> {r.techName}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* Скор + владелец */}
+                                    {(r.scorePoint || r.scoreWeight || r.owner) && (
+                                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                                        {r.scorePoint != null && (
+                                          <span className="flex items-center gap-1">
+                                            <Icon name="Star" size={10} className="text-accent" />
+                                            Балл: <span className="font-semibold text-foreground ml-0.5">{r.scorePoint}</span>
+                                          </span>
+                                        )}
+                                        {r.scoreWeight != null && (
+                                          <span className="flex items-center gap-1">
+                                            <Icon name="Weight" size={10} className="text-accent" />
+                                            Вес: <span className="font-semibold text-foreground ml-0.5">{r.scoreWeight}</span>
+                                          </span>
+                                        )}
+                                        {r.owner && (
+                                          <span className="flex items-center gap-1">
+                                            <Icon name="User" size={10} /> {r.owner}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {/* Описание */}
+                                    {r.description && (
+                                      <p className="text-[11px] text-muted-foreground leading-relaxed">{r.description}</p>
+                                    )}
+                                    {/* Нормативка / метрики / способ */}
+                                    {(r.normativeDoc || r.controlMetrics || r.fulfillmentMethod) && (
+                                      <div className="flex flex-col gap-1.5 pt-1 border-t border-border/40">
+                                        {r.normativeDoc && (
+                                          <div>
+                                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Нормативная документация</div>
+                                            <div className="text-[11px]">{r.normativeDoc}</div>
+                                          </div>
+                                        )}
+                                        {r.controlMetrics && (
+                                          <div>
+                                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Метрики контроля</div>
+                                            <div className="text-[11px]">{r.controlMetrics}</div>
+                                          </div>
+                                        )}
+                                        {r.fulfillmentMethod && (
+                                          <div>
+                                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Способ исполнения</div>
+                                            <div className="text-[11px]">{r.fulfillmentMethod}</div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
