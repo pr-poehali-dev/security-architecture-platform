@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_ORG_DOMAINS_URL: ${VITE_ORG_DOMAINS_URL}
+        VITE_TECH_DOMAINS_URL: ${VITE_TECH_DOMAINS_URL}
+        VITE_TECHNOLOGIES_URL: ${VITE_TECHNOLOGIES_URL}
+        VITE_REQUIREMENTS_URL: ${VITE_REQUIREMENTS_URL}
+        VITE_DECISIONS_URL: ${VITE_DECISIONS_URL}
+        VITE_HARDENING_URL: ${VITE_HARDENING_URL}
+        VITE_ARCH_TEMPLATES_URL: ${VITE_ARCH_TEMPLATES_URL}
+    ports:
+      - "80:80"
+    restart: unless-stopped
