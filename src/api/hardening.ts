@@ -135,6 +135,11 @@ export type EnvName = 'prod' | 'prodlike' | 'stage' | 'test' | 'dev';
 export type EnvStatus = 'required' | 'not_required' | 'conditional';
 export type EnvStatusMap = Record<EnvName, EnvStatus>;
 
+export interface EnvStatusDual {
+  noIod: EnvStatusMap;
+  iod: EnvStatusMap;
+}
+
 export const ENVS: { key: EnvName; label: string }[] = [
   { key: 'prod',     label: 'Prod'     },
   { key: 'prodlike', label: 'ProdLike' },
@@ -154,20 +159,25 @@ export const DEFAULT_ENV_STATUS: EnvStatusMap = {
   test: 'not_required', dev: 'not_required',
 };
 
+export const DEFAULT_ENV_STATUS_DUAL: EnvStatusDual = {
+  noIod: { ...DEFAULT_ENV_STATUS },
+  iod:   { ...DEFAULT_ENV_STATUS },
+};
+
 export interface ReqContent {
   markdown: string;
   updatedAt: string | null;
   images: ReqImage[];
-  envStatus: EnvStatusMap;
+  envStatus: EnvStatusDual;
 }
 
 export async function fetchReqContent(hardeningId: string, requirementId: string): Promise<ReqContent> {
   const res = await fetch(`${BASE}?req_content&hid=${encodeURIComponent(hardeningId)}&rid=${encodeURIComponent(requirementId)}`);
-  if (!res.ok) return { markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS } };
+  if (!res.ok) return { markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS_DUAL } };
   return res.json();
 }
 
-export async function saveEnvStatus(hardeningId: string, requirementId: string, statuses: EnvStatusMap): Promise<EnvStatusMap> {
+export async function saveEnvStatus(hardeningId: string, requirementId: string, statuses: EnvStatusDual): Promise<EnvStatusDual> {
   const res = await fetch(`${BASE}?action=save_env_status`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },

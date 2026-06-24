@@ -183,31 +183,42 @@ ENV_STATUSES = ["required", "not_required", "conditional"]
 
 def get_env_status(cur, hid: str, rid: str) -> dict:
     cur.execute(
-        "SELECT env, status FROM hardening_req_env_status WHERE hardening_id = %s AND requirement_id = %s",
+        "SELECT env, status, iod FROM hardening_req_env_status WHERE hardening_id = %s AND requirement_id = %s",
         (hid, rid),
     )
     rows = cur.fetchall()
-    result = {env: "not_required" for env in ENVS}
+    result_no_iod = {env: "not_required" for env in ENVS}
+    result_iod = {env: "not_required" for env in ENVS}
     for row in rows:
-        if row[0] in result:
-            result[row[0]] = row[1]
-    return result
+        env, status, iod = row[0], row[1], row[2]
+        if env in result_no_iod:
+            if iod:
+                result_iod[env] = status
+            else:
+                result_no_iod[env] = status
+    return {"noIod": result_no_iod, "iod": result_iod}
 
 
 def save_env_status(cur, hid: str, rid: str, statuses: dict):
-    for env in ENVS:
-        status = statuses.get(env, "not_required")
-        if status not in ENV_STATUSES:
-            status = "not_required"
-        cur.execute(
-            """
-            INSERT INTO hardening_req_env_status (hardening_id, requirement_id, env, status, updated_at)
-            VALUES (%s, %s, %s, %s, now())
-            ON CONFLICT (hardening_id, requirement_id, env)
-            DO UPDATE SET status = EXCLUDED.status, updated_at = now()
-            """,
-            (hid, rid, env, status),
-        )
+    # statuses = {"noIod": {env: status, ...}, "iod": {env: status, ...}}
+    rows_map = {
+        False: statuses.get("noIod") or {},
+        True:  statuses.get("iod") or {},
+    }
+    for iod_flag, env_map in rows_map.items():
+        for env in ENVS:
+            status = env_map.get(env, "not_required")
+            if status not in ENV_STATUSES:
+                status = "not_required"
+            cur.execute(
+                """
+                INSERT INTO hardening_req_env_status (hardening_id, requirement_id, env, status, iod, updated_at)
+                VALUES (%s, %s, %s, %s, %s, now())
+                ON CONFLICT (hardening_id, requirement_id, env, iod)
+                DO UPDATE SET status = EXCLUDED.status, updated_at = now()
+                """,
+                (hid, rid, env, status, iod_flag),
+            )
 
 
 def get_req_content(cur, hid: str, rid: str) -> dict:

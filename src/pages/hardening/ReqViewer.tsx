@@ -8,7 +8,7 @@ import {
   ReqImage,
   EnvStatus,
   ENVS,
-  DEFAULT_ENV_STATUS,
+  DEFAULT_ENV_STATUS_DUAL,
 } from '@/api/hardening';
 
 const ENV_STATUS_STYLE: Record<EnvStatus, { cell: string; icon: string; label: string }> = {
@@ -52,7 +52,11 @@ export default function ReqViewer({ hardeningId, req }: ReqViewerProps) {
 
   if (!content) return null;
 
-  const envStatus = content.envStatus ?? { ...DEFAULT_ENV_STATUS };
+  const envStatus = content.envStatus ?? { ...DEFAULT_ENV_STATUS_DUAL };
+  const IOD_ROWS: { key: 'noIod' | 'iod'; label: string }[] = [
+    { key: 'noIod', label: 'Без ИОД' },
+    { key: 'iod',   label: 'С ИОД'   },
+  ];
 
   return (
     <div className="space-y-5 pt-1">
@@ -62,25 +66,33 @@ export default function ReqViewer({ hardeningId, req }: ReqViewerProps) {
           <Icon name="Layers" size={11} /> Применимость по средам
         </div>
         <div className="rounded-lg border border-border overflow-hidden">
-          <div className="grid grid-cols-5 border-b border-border bg-muted/30">
+          {/* Заголовок: пустая ячейка + среды */}
+          <div className="grid grid-cols-[72px_repeat(5,1fr)] border-b border-border bg-muted/30">
+            <div className="border-r border-border" />
             {ENVS.map(({ key, label }) => (
               <div key={key} className="px-2 py-1.5 text-center text-[11px] font-semibold text-muted-foreground border-r last:border-r-0 border-border">
                 {label}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-5">
-            {ENVS.map(({ key }) => {
-              const st = (envStatus[key] ?? 'not_required') as EnvStatus;
-              const style = ENV_STATUS_STYLE[st];
-              return (
-                <div key={key} className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 border-r last:border-r-0 border-border ${style.cell}`}>
-                  <Icon name={style.icon} size={13} />
-                  <span className="text-[10px] font-semibold leading-tight text-center">{style.label}</span>
-                </div>
-              );
-            })}
-          </div>
+          {/* Строки: Без ИОД / С ИОД */}
+          {IOD_ROWS.map((row, rowIdx) => (
+            <div key={row.key} className={`grid grid-cols-[72px_repeat(5,1fr)] ${rowIdx < IOD_ROWS.length - 1 ? 'border-b border-border' : ''}`}>
+              <div className="flex items-center justify-center px-1 py-2.5 border-r border-border bg-muted/20">
+                <span className="text-[10px] font-semibold text-muted-foreground text-center leading-tight">{row.label}</span>
+              </div>
+              {ENVS.map(({ key }) => {
+                const st = ((envStatus[row.key] ?? {})[key] ?? 'not_required') as EnvStatus;
+                const style = ENV_STATUS_STYLE[st];
+                return (
+                  <div key={key} className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 border-r last:border-r-0 border-border ${style.cell}`}>
+                    <Icon name={style.icon} size={13} />
+                    <span className="text-[10px] font-semibold leading-tight text-center">{style.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
 

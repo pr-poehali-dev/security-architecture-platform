@@ -11,9 +11,10 @@ import {
   ReqImage,
   EnvName,
   EnvStatus,
-  EnvStatusMap,
+  EnvStatusDual,
   ENVS,
   DEFAULT_ENV_STATUS,
+  DEFAULT_ENV_STATUS_DUAL,
 } from '@/api/hardening';
 
 const ENV_STATUS_STYLE: Record<EnvStatus, { cell: string; icon: string; label: string }> = {
@@ -24,6 +25,11 @@ const ENV_STATUS_STYLE: Record<EnvStatus, { cell: string; icon: string; label: s
 
 const ENV_STATUS_CYCLE: EnvStatus[] = ['required', 'conditional', 'not_required'];
 
+const IOD_ROWS: { key: 'noIod' | 'iod'; label: string }[] = [
+  { key: 'noIod', label: 'Без ИОД' },
+  { key: 'iod',   label: 'С ИОД'   },
+];
+
 interface ReqEditorProps {
   hardeningId: string;
   req: RequirementRef;
@@ -31,7 +37,7 @@ interface ReqEditorProps {
 
 export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
   const [content, setContent] = useState<ReqContent>({
-    markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS },
+    markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS_DUAL },
   });
   const [loadingContent, setLoadingContent] = useState(true);
   const [mdValue, setMdValue] = useState('');
@@ -41,7 +47,7 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [envSaved, setEnvSaved] = useState(false);
-  const [localEnv, setLocalEnv] = useState<EnvStatusMap>({ ...DEFAULT_ENV_STATUS });
+  const [localEnv, setLocalEnv] = useState<EnvStatusDual>({ ...DEFAULT_ENV_STATUS_DUAL });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const envSaveTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -53,7 +59,7 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
       .then((c) => {
         setContent(c);
         setMdValue(c.markdown);
-        setLocalEnv(c.envStatus ?? { ...DEFAULT_ENV_STATUS });
+        setLocalEnv(c.envStatus ?? { ...DEFAULT_ENV_STATUS_DUAL });
       })
       .finally(() => setLoadingContent(false));
   }, [hardeningId, req.id]);
@@ -72,11 +78,14 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
     }
   }, [hardeningId, req.id]);
 
-  const cycleEnv = async (env: EnvName) => {
+  const cycleEnv = async (row: 'noIod' | 'iod', env: EnvName) => {
     if (!hardeningId) return;
-    const cur = localEnv[env];
+    const cur = localEnv[row][env];
     const next = ENV_STATUS_CYCLE[(ENV_STATUS_CYCLE.indexOf(cur) + 1) % ENV_STATUS_CYCLE.length];
-    const updated = { ...localEnv, [env]: next };
+    const updated: EnvStatusDual = {
+      ...localEnv,
+      [row]: { ...localEnv[row], [env]: next },
+    };
     setLocalEnv(updated);
     setSavingEnv(true);
     try {
@@ -135,32 +144,42 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
           )}
         </div>
         <div className="rounded-lg border border-border overflow-hidden">
-          <div className="grid grid-cols-5 border-b border-border bg-muted/30">
+          {/* Header row: пустая ячейка + 5 сред */}
+          <div className="grid grid-cols-[80px_repeat(5,1fr)] border-b border-border bg-muted/30">
+            <div className="border-r border-border" />
             {ENVS.map(({ key, label }) => (
               <div key={key} className="px-2 py-2 text-center text-[11px] font-semibold text-muted-foreground border-r last:border-r-0 border-border">
                 {label}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-5">
-            {ENVS.map(({ key, label }) => {
-              const st = localEnv[key] as EnvStatus;
-              const style = ENV_STATUS_STYLE[st];
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  title={`${label}: нажмите для смены статуса`}
-                  onClick={() => cycleEnv(key)}
-                  disabled={!hardeningId}
-                  className={`flex flex-col items-center justify-center gap-1 py-3 px-2 border-r last:border-r-0 border-border transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed rounded-none ${style.cell}`}
-                >
-                  <Icon name={style.icon} size={14} />
-                  <span className="text-[10px] font-semibold leading-tight text-center">{style.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Две строки: Без ИОД / С ИОД */}
+          {IOD_ROWS.map((row, rowIdx) => (
+            <div key={row.key} className={`grid grid-cols-[80px_repeat(5,1fr)] ${rowIdx < IOD_ROWS.length - 1 ? 'border-b border-border' : ''}`}>
+              {/* Лейбл строки */}
+              <div className="flex items-center justify-center px-2 py-3 border-r border-border bg-muted/20">
+                <span className="text-[10px] font-semibold text-muted-foreground text-center leading-tight">{row.label}</span>
+              </div>
+              {/* Ячейки сред */}
+              {ENVS.map(({ key, label }) => {
+                const st = (localEnv[row.key]?.[key] ?? 'not_required') as EnvStatus;
+                const style = ENV_STATUS_STYLE[st];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    title={`${row.label} / ${label}: нажмите для смены статуса`}
+                    onClick={() => cycleEnv(row.key, key)}
+                    disabled={!hardeningId}
+                    className={`flex flex-col items-center justify-center gap-1 py-3 px-2 border-r last:border-r-0 border-border transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed rounded-none ${style.cell}`}
+                  >
+                    <Icon name={style.icon} size={14} />
+                    <span className="text-[10px] font-semibold leading-tight text-center">{style.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
         {!hardeningId && (
           <p className="text-[11px] text-muted-foreground">Сохраните карточку, чтобы задавать статусы сред</p>
