@@ -148,7 +148,7 @@ function ReqEditor({
   );
 
   return (
-    <div className="flex flex-col h-full gap-5">
+    <div className="flex flex-col gap-5">
       {/* Req header */}
       <div className="pb-3 border-b border-border">
         <div className="text-xs font-mono text-muted-foreground mb-1">{req.id}</div>
@@ -209,7 +209,7 @@ function ReqEditor({
       </div>
 
       {/* Markdown editor */}
-      <div className="flex-1 flex flex-col gap-2 min-h-0">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
             <Icon name="FileText" size={12} /> Инструкция (Markdown)
@@ -232,7 +232,7 @@ function ReqEditor({
         </div>
 
         {mdPreview ? (
-          <div className="flex-1 overflow-y-auto rounded-md border border-border bg-card/50 p-4 min-h-[160px]">
+          <div className="rounded-md border border-border bg-card/50 p-4 min-h-[160px]">
             {mdValue
               ? <MarkdownViewer>{mdValue}</MarkdownViewer>
               : <p className="text-muted-foreground text-sm">Нет содержимого</p>}
@@ -243,7 +243,7 @@ function ReqEditor({
             onChange={(e) => setMdValue(e.target.value)}
             rows={8}
             placeholder="Опишите инструкцию по настройке в формате Markdown…"
-            className="flex-1 w-full px-3 py-2.5 rounded-md border border-border bg-background text-sm font-mono outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none min-h-[160px]"
+            className="w-full px-3 py-2.5 rounded-md border border-border bg-background text-sm font-mono outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-y min-h-[160px]"
           />
         )}
 
