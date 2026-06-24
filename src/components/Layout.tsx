@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import SectionContent from '@/components/SectionContent';
@@ -32,6 +32,20 @@ const Layout = ({ section: sectionProp, children }: LayoutProps = {}) => {
   const section = sectionProp ?? params.section ?? 'library';
   const [menuOpen, setMenuOpen] = useState(true);
   const navCounts = useNavCounts();
+
+  // Сбросить кеш с нулями при первом монтировании
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('nav_counts');
+      if (raw) {
+        const entry = JSON.parse(raw) as { counts: Record<string, number> };
+        const vals = Object.values(entry.counts);
+        if (vals.length > 0 && vals.every((v) => v === 0)) {
+          sessionStorage.removeItem('nav_counts');
+        }
+      }
+    } catch { /* */ }
+  }, []);
 
   if (!VALID_SECTIONS.includes(section)) {
     return <Navigate to="/library" replace />;
