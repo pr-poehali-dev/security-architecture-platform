@@ -73,7 +73,7 @@ export default function OrgDomainForm() {
     }
   };
 
-  if (loading) return (
+  if (!loaded) return (
     <div className="flex items-center justify-center py-32 text-muted-foreground gap-3">
       <Icon name="Loader2" size={22} className="animate-spin" /> Загрузка…
     </div>
