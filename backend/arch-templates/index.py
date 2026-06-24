@@ -108,7 +108,7 @@ def get_tags(cur, tmpl_id: str) -> list:
         f"""
         SELECT t.id, t.name FROM {SCHEMA}.tags t
         JOIN {SCHEMA}.arch_template_tags att ON att.tag_id = t.id
-        WHERE att.template_id = %s ORDER BY t.name
+        WHERE att.template_id = %s AND att.is_active = true ORDER BY t.name
         """,
         (tmpl_id,),
     )
@@ -117,65 +117,23 @@ def get_tags(cur, tmpl_id: str) -> list:
 
 def set_tags(cur, tmpl_id: str, tag_names: list):
     tag_names = [n.strip() for n in tag_names if n.strip()]
-    existing_ids = []
+    desired_ids = []
     for name in tag_names:
         cur.execute(f"INSERT INTO {SCHEMA}.tags (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", (name,))
         cur.execute(f"SELECT id FROM {SCHEMA}.tags WHERE name = %s", (name,))
         row = cur.fetchone()
         if row:
-            existing_ids.append(row[0])
-    cur.execute(f"UPDATE {SCHEMA}.arch_template_tags SET tag_id = tag_id WHERE template_id = %s AND 1=0", (tmpl_id,))
-    cur.execute(
-        f"INSERT INTO {SCHEMA}.arch_template_tags (template_id, tag_id) SELECT %s, tag_id FROM {SCHEMA}.arch_template_tags WHERE template_id = %s AND 1=0",
-        (tmpl_id, tmpl_id),
-    )
-    # Синхронизация тегов через временный подход: удаляем через NOT IN
-    if existing_ids:
-        placeholders = ",".join(["%s"] * len(existing_ids))
+            desired_ids.append(row[0])
+    # Деактивируем все текущие теги
+    cur.execute(f"UPDATE {SCHEMA}.arch_template_tags SET is_active = false WHERE template_id = %s", (tmpl_id,))
+    # Активируем / вставляем нужные
+    for tid in desired_ids:
         cur.execute(
-            f"UPDATE {SCHEMA}.arch_template_tags SET tag_id = tag_id WHERE template_id = %s AND tag_id NOT IN ({placeholders}) AND 1=0",
-            [tmpl_id] + existing_ids,
-        )
-    # Вставляем новые теги
-    for tid in existing_ids:
-        cur.execute(
-            f"INSERT INTO {SCHEMA}.arch_template_tags (template_id, tag_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            f"""INSERT INTO {SCHEMA}.arch_template_tags (template_id, tag_id, is_active)
+                VALUES (%s, %s, true)
+                ON CONFLICT (template_id, tag_id) DO UPDATE SET is_active = true""",
             (tmpl_id, tid),
         )
-    # Убираем теги которых нет в новом списке
-    if existing_ids:
-        placeholders = ",".join(["%s"] * len(existing_ids))
-        cur.execute(
-            f"UPDATE {SCHEMA}.arch_template_tags SET template_id = template_id WHERE 1=0 AND template_id = %s AND tag_id NOT IN ({placeholders})",
-            [tmpl_id] + existing_ids,
-        )
-    else:
-        pass
-    # Финальная синхронизация через TRUNCATE-like для конкретного template_id
-    # Сначала получаем текущие теги
-    cur.execute(f"SELECT tag_id FROM {SCHEMA}.arch_template_tags WHERE template_id = %s", (tmpl_id,))
-    current = {r[0] for r in cur.fetchall()}
-    desired = set(existing_ids)
-    # Добавляем недостающие
-    for tid in desired - current:
-        cur.execute(
-            f"INSERT INTO {SCHEMA}.arch_template_tags (template_id, tag_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
-            (tmpl_id, tid),
-        )
-    # Помечаем лишние как устаревшие — через UPDATE с нулевым эффектом (нет CASCADE без DELETE)
-    # Используем временную таблицу в памяти
-    to_remove = current - desired
-    for tid in to_remove:
-        cur.execute(
-            f"UPDATE {SCHEMA}.arch_template_tags SET tag_id = %s WHERE template_id = %s AND tag_id = %s",
-            (tid, tmpl_id, tid),
-        )
-    # Убираем лишние теги через update-then-select trick не поможет без DELETE
-    # Используем allowed workaround: INSERT ... ON CONFLICT DO UPDATE с маркером
-    # Финальный подход: перезаписываем через temp column trick не работает без DELETE
-    # Реализуем через явный INSERT нового набора и UPDATE старого
-    # Поскольку DELETE запрещён, оставим только добавление тегов (без удаления старых)
-    # TODO: для полной синхронизации нужен доступ к DELETE в БД
 
 
 def get_mermaid(cur, tmpl_id: str) -> list:
@@ -207,11 +165,11 @@ def get_related_templates(cur, tmpl_id: str) -> list:
         f"""
         SELECT t.id, t.name, t.template_type, t.status FROM {SCHEMA}.arch_templates t
         JOIN {SCHEMA}.arch_template_links atl ON atl.related_id = t.id
-        WHERE atl.template_id = %s
+        WHERE atl.template_id = %s AND atl.is_active = true
         UNION
         SELECT t.id, t.name, t.template_type, t.status FROM {SCHEMA}.arch_templates t
         JOIN {SCHEMA}.arch_template_links atl ON atl.template_id = t.id
-        WHERE atl.related_id = %s
+        WHERE atl.related_id = %s AND atl.is_active = true
         ORDER BY name
         """,
         (tmpl_id, tmpl_id),
@@ -222,11 +180,14 @@ def get_related_templates(cur, tmpl_id: str) -> list:
 
 
 def set_related_templates(cur, tmpl_id: str, related_ids: list):
+    cur.execute(f"UPDATE {SCHEMA}.arch_template_links SET is_active = false WHERE template_id = %s", (tmpl_id,))
     for rid in related_ids:
         if rid == tmpl_id:
             continue
         cur.execute(
-            f"INSERT INTO {SCHEMA}.arch_template_links (template_id, related_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            f"""INSERT INTO {SCHEMA}.arch_template_links (template_id, related_id, is_active)
+                VALUES (%s, %s, true)
+                ON CONFLICT (template_id, related_id) DO UPDATE SET is_active = true""",
             (tmpl_id, rid),
         )
 
@@ -236,7 +197,7 @@ def get_technologies(cur, tmpl_id: str) -> list:
         f"""
         SELECT t.id, t.name, t.status FROM {SCHEMA}.technologies t
         JOIN {SCHEMA}.arch_template_technologies att ON att.technology_id = t.id
-        WHERE att.template_id = %s ORDER BY t.name
+        WHERE att.template_id = %s AND att.is_active = true ORDER BY t.name
         """,
         (tmpl_id,),
     )
@@ -245,9 +206,12 @@ def get_technologies(cur, tmpl_id: str) -> list:
 
 
 def set_technologies(cur, tmpl_id: str, tech_ids: list):
+    cur.execute(f"UPDATE {SCHEMA}.arch_template_technologies SET is_active = false WHERE template_id = %s", (tmpl_id,))
     for tid in tech_ids:
         cur.execute(
-            f"INSERT INTO {SCHEMA}.arch_template_technologies (template_id, technology_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            f"""INSERT INTO {SCHEMA}.arch_template_technologies (template_id, technology_id, is_active)
+                VALUES (%s, %s, true)
+                ON CONFLICT (template_id, technology_id) DO UPDATE SET is_active = true""",
             (tmpl_id, tid),
         )
 
@@ -257,7 +221,7 @@ def get_decisions(cur, tmpl_id: str) -> list:
         f"""
         SELECT d.id, d.name, d.decision_type, d.status FROM {SCHEMA}.decisions d
         JOIN {SCHEMA}.arch_template_decisions atd ON atd.decision_id = d.id
-        WHERE atd.template_id = %s ORDER BY d.name
+        WHERE atd.template_id = %s AND atd.is_active = true ORDER BY d.name
         """,
         (tmpl_id,),
     )
@@ -267,9 +231,12 @@ def get_decisions(cur, tmpl_id: str) -> list:
 
 
 def set_decisions(cur, tmpl_id: str, decision_ids: list):
+    cur.execute(f"UPDATE {SCHEMA}.arch_template_decisions SET is_active = false WHERE template_id = %s", (tmpl_id,))
     for did in decision_ids:
         cur.execute(
-            f"INSERT INTO {SCHEMA}.arch_template_decisions (template_id, decision_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            f"""INSERT INTO {SCHEMA}.arch_template_decisions (template_id, decision_id, is_active)
+                VALUES (%s, %s, true)
+                ON CONFLICT (template_id, decision_id) DO UPDATE SET is_active = true""",
             (tmpl_id, did),
         )
 
