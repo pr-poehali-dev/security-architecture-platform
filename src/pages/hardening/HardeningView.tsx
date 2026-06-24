@@ -109,7 +109,7 @@ function ReqViewer({ hardeningId, req }: { hardeningId: string; req: Requirement
           </div>
         </div>
       ) : (
-        !hasContent && (
+        content.images.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-4">Инструкция не заполнена</p>
         )
       )}
