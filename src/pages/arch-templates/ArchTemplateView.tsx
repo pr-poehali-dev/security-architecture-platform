@@ -3,10 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import MarkdownViewer from '@/components/technologies/MarkdownViewer';
 import MermaidPreview from '@/components/technologies/MermaidPreview';
+import RequirementsSection from './RequirementsSection';
 import {
   fetchArchTemplate,
   ArchTemplateDetail,
-  RequirementDomainGroup,
 } from '@/api/archTemplates';
 
 const STATUS_STYLE: Record<string, string> = {
@@ -22,13 +22,6 @@ const TYPE_STYLE: Record<string, string> = {
   organizational: 'bg-purple-500/10 text-purple-400',
 };
 
-const REQ_STATUS_STYLE: Record<string, string> = {
-  active:         'bg-emerald-500/15 text-emerald-400',
-  in_development: 'bg-amber-500/15 text-amber-400',
-  inactive:       'bg-muted text-muted-foreground',
-  archived:       'bg-muted text-muted-foreground',
-};
-
 function SectionLabel({ icon, text }: { icon: string; text: string }) {
   return (
     <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -37,49 +30,7 @@ function SectionLabel({ icon, text }: { icon: string; text: string }) {
   );
 }
 
-function RequirementsView({ groups }: { groups: RequirementDomainGroup[] }) {
-  if (!groups.length) return (
-    <p className="text-sm text-muted-foreground">Нет связанных требований</p>
-  );
-  return (
-    <div className="flex flex-col gap-3">
-      {groups.map((group) => (
-        <div key={group.domainId ?? '__none__'} className="rounded-lg border border-border bg-card/50 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted/30">
-            <Icon name="Layers" size={14} className="text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{group.domainName}</span>
-            <span className="ml-auto text-[11px] font-mono text-muted-foreground">{group.requirements.length}</span>
-          </div>
-          <div className="divide-y divide-border">
-            {group.requirements.map((req) => (
-              <div key={req.id} className="flex items-start gap-3 px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium leading-snug">{req.shortDesc}</div>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[10px] font-mono text-muted-foreground">{req.id}</span>
-                    {req.techName && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
-                        <Icon name="Cpu" size={9} /> {req.techName}
-                      </span>
-                    )}
-                    {req.source === 'hardening' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 flex items-center gap-1">
-                        <Icon name="ShieldCheck" size={9} /> харденинг
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${REQ_STATUS_STYLE[req.status] ?? 'bg-muted text-muted-foreground'}`}>
-                  {req.status === 'active' ? 'Активно' : req.status === 'in_development' ? 'В работе' : req.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+type Tab = 'overview' | 'requirements' | 'mermaid' | 'files' | 'history';
 
 export default function ArchTemplateView() {
   const { id } = useParams<{ id: string }>();
@@ -87,7 +38,7 @@ export default function ArchTemplateView() {
   const [data, setData] = useState<ArchTemplateDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'requirements' | 'mermaid' | 'files' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   useEffect(() => {
     if (!id) return;
@@ -114,11 +65,11 @@ export default function ArchTemplateView() {
   const totalReqs = data.requirementsByDomain.reduce((s, g) => s + g.requirements.length, 0);
 
   const TABS = [
-    { id: 'overview',     label: 'Обзор',      icon: 'Info'       },
-    { id: 'requirements', label: 'Требования', icon: 'ListChecks', badge: totalReqs > 0 ? String(totalReqs) : undefined },
-    { id: 'mermaid',      label: 'Схемы',      icon: 'GitBranch',  badge: data.mermaidDiagrams.length > 0 ? String(data.mermaidDiagrams.length) : undefined },
-    { id: 'files',        label: 'Файлы',      icon: 'Paperclip',  badge: data.files.length > 0 ? String(data.files.length) : undefined },
-    { id: 'history',      label: 'История',    icon: 'Clock'      },
+    { id: 'overview',     label: 'Обзор',      icon: 'Info'        },
+    { id: 'requirements', label: 'Требования', icon: 'ListChecks',  badge: totalReqs > 0 ? String(totalReqs) : undefined },
+    { id: 'mermaid',      label: 'Схемы',      icon: 'GitBranch',   badge: data.mermaidDiagrams.length > 0 ? String(data.mermaidDiagrams.length) : undefined },
+    { id: 'files',        label: 'Файлы',      icon: 'Paperclip',   badge: data.files.length > 0 ? String(data.files.length) : undefined },
+    { id: 'history',      label: 'История',    icon: 'Clock',       badge: data.versions.length > 0 ? String(data.versions.length) : undefined },
   ] as const;
 
   return (
@@ -169,24 +120,26 @@ export default function ArchTemplateView() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Tabs */}
-        <div className="px-6 max-w-[1400px] mx-auto flex gap-0.5 -mb-px">
+      {/* Tab bar — отдельная полоса под хедером */}
+      <div className="border-b border-border bg-card/60 sticky top-0 z-10">
+        <div className="px-6 max-w-[1400px] mx-auto flex gap-0.5 overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
-              onClick={() => setActiveTab(t.id as typeof activeTab)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              onClick={() => setActiveTab(t.id as Tab)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
                 activeTab === t.id
-                  ? 'border-accent text-primary-foreground'
-                  : 'border-transparent text-primary-foreground/60 hover:text-primary-foreground/80'
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <Icon name={t.icon} size={15} />
               {t.label}
               {'badge' in t && t.badge && (
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-accent/20 text-accent">{t.badge}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-accent/15 text-accent">{t.badge}</span>
               )}
             </button>
           ))}
@@ -305,18 +258,24 @@ export default function ArchTemplateView() {
               <div className="rounded-lg border border-border bg-card/50 p-4 flex flex-col gap-2">
                 <SectionLabel icon="BarChart2" text="Статистика" />
                 {[
-                  { icon: 'Cpu',        label: 'Технологии',  val: data.technologies.length    },
-                  { icon: 'Workflow',   label: 'Решения',     val: data.decisions.length        },
-                  { icon: 'ListChecks', label: 'Требования',  val: totalReqs                    },
-                  { icon: 'GitBranch',  label: 'Схемы',       val: data.mermaidDiagrams.length  },
-                  { icon: 'Paperclip',  label: 'Файлы',       val: data.files.length            },
-                ].map(({ icon, label, val }) => (
-                  <div key={label} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2 text-muted-foreground">
+                  { id: 'requirements', icon: 'ListChecks', label: 'Требования',  val: totalReqs                    },
+                  { id: 'mermaid',      icon: 'GitBranch',  label: 'Схемы',       val: data.mermaidDiagrams.length  },
+                  { id: 'files',        icon: 'Paperclip',  label: 'Файлы',       val: data.files.length            },
+                  { id: 'history',      icon: 'Clock',      label: 'Версий',      val: data.versions.length         },
+                ].map(({ id: tid, icon, label, val }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setActiveTab(tid as Tab)}
+                    className="flex items-center justify-between text-sm hover:text-accent transition-colors group"
+                  >
+                    <span className="flex items-center gap-2 text-muted-foreground group-hover:text-accent transition-colors">
                       <Icon name={icon} size={13} /> {label}
                     </span>
-                    <span className="font-mono text-xs">{val}</span>
-                  </div>
+                    <span className={`font-mono text-xs px-1.5 py-0.5 rounded-full transition-colors ${val > 0 ? 'bg-accent/10 text-accent' : 'text-muted-foreground'}`}>
+                      {val}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -329,7 +288,7 @@ export default function ArchTemplateView() {
             <p className="text-sm text-muted-foreground mb-4">
               Требования из связанных технологий и решений, включая харденинг-конфигурации
             </p>
-            <RequirementsView groups={data.requirementsByDomain} />
+            <RequirementsSection groups={data.requirementsByDomain} />
           </div>
         )}
 
@@ -419,6 +378,7 @@ export default function ArchTemplateView() {
             )}
           </div>
         )}
+
       </div>
     </>
   );
