@@ -24,6 +24,8 @@ export default function ArchTemplateList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [sortCol, setSortCol] = useState<'name' | 'templateType' | 'owner' | 'status' | 'version'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     fetchArchTemplates()
@@ -32,17 +34,36 @@ export default function ArchTemplateList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = items.filter((d) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q
-      || d.name.toLowerCase().includes(q)
-      || d.id.toLowerCase().includes(q)
-      || d.owner.toLowerCase().includes(q)
-      || d.tags.some((t) => t.name.toLowerCase().includes(q));
-    return matchSearch
-      && (!statusFilter || d.status === statusFilter)
-      && (!typeFilter || d.templateType === typeFilter);
-  });
+  const handleSort = (col: typeof sortCol) => {
+    if (sortCol === col) { setSortDir((d) => d === 'asc' ? 'desc' : 'asc'); }
+    else { setSortCol(col); setSortDir('asc'); }
+  };
+
+  const filtered = items
+    .filter((d) => {
+      const q = search.toLowerCase();
+      const matchSearch = !q
+        || d.name.toLowerCase().includes(q)
+        || d.id.toLowerCase().includes(q)
+        || d.owner.toLowerCase().includes(q)
+        || d.tags.some((t) => t.name.toLowerCase().includes(q));
+      return matchSearch
+        && (!statusFilter || d.status === statusFilter)
+        && (!typeFilter || d.templateType === typeFilter);
+    })
+    .sort((a, b) => {
+      const v = (x: ArchTemplate) => {
+        if (sortCol === 'name')         return x.name.toLowerCase();
+        if (sortCol === 'templateType') return x.typeLabel.toLowerCase();
+        if (sortCol === 'owner')        return (x.owner || '').toLowerCase();
+        if (sortCol === 'status')       return x.statusLabel.toLowerCase();
+        if (sortCol === 'version')      return x.version || '';
+        return '';
+      };
+      return sortDir === 'asc'
+        ? v(a).localeCompare(v(b), 'ru')
+        : v(b).localeCompare(v(a), 'ru');
+    });
 
   return (
     <>
@@ -142,11 +163,17 @@ export default function ArchTemplateList() {
         {!loading && filtered.length > 0 && (
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="grid grid-cols-[1fr_120px_130px_120px_80px_50px] gap-4 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground font-medium">
-              <span>Название / Теги</span>
-              <span>Тип</span>
-              <span>Владелец</span>
-              <span>Статус</span>
-              <span>Версия</span>
+              {([ ['name','Название / Теги'], ['templateType','Тип'], ['owner','Владелец'], ['status','Статус'], ['version','Версия'] ] as const).map(([col, label]) => (
+                <button key={col} type="button" onClick={() => handleSort(col)}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors text-left">
+                  {label}
+                  <Icon
+                    name={sortCol === col ? (sortDir === 'asc' ? 'ChevronUp' : 'ChevronDown') : 'ChevronsUpDown'}
+                    size={12}
+                    className={sortCol === col ? 'text-accent' : 'opacity-40'}
+                  />
+                </button>
+              ))}
               <span />
             </div>
             {filtered.map((d, i) => (
