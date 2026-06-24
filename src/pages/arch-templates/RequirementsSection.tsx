@@ -114,14 +114,40 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
         )}
       </div>
 
-      {/* Описание + харденинг */}
-      {(detail.description || hardeningId) && (
-        <div className="flex flex-col gap-2">
-          {detail.description && (
-            <p className="text-xs text-muted-foreground leading-relaxed">{detail.description}</p>
+      {/* Описание */}
+      {detail.description && (
+        <p className="text-xs text-muted-foreground leading-relaxed">{detail.description}</p>
+      )}
+
+      {/* Доп. поля + харденинг рядом */}
+      {(hasExtra || hardeningId) && (
+        <div className="flex gap-4 items-start">
+          {/* Левая колонка: нормативка, метрики, способ */}
+          {hasExtra && (
+            <div className="flex flex-col gap-2 min-w-0 flex-1">
+              {detail.normativeDoc && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">Нормативная документация</div>
+                  <div className="text-xs">{detail.normativeDoc}</div>
+                </div>
+              )}
+              {detail.controlMetrics && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">Метрики контроля</div>
+                  <div className="text-xs">{detail.controlMetrics}</div>
+                </div>
+              )}
+              {detail.fulfillmentMethod && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">Способ исполнения</div>
+                  <div className="text-xs">{detail.fulfillmentMethod}</div>
+                </div>
+              )}
+            </div>
           )}
+          {/* Правая колонка: харденинг */}
           {hardeningId && (
-            <div className="flex flex-col gap-1 pl-3 border-l-2 border-orange-500/40">
+            <div className="flex flex-col gap-1 min-w-0 flex-1 pl-3 border-l border-orange-500/30">
               <div className="flex items-center gap-1">
                 <Icon name="ShieldCheck" size={10} className="text-orange-400" />
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Харденинг</span>
@@ -131,30 +157,6 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
                 ? <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
                 : <span className="text-[11px] text-muted-foreground/50 italic">Текст не заполнен</span>
               )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Доп. поля */}
-      {hasExtra && (
-        <div className="flex flex-col gap-2">
-          {detail.normativeDoc && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">Нормативная документация</div>
-              <div className="text-xs">{detail.normativeDoc}</div>
-            </div>
-          )}
-          {detail.controlMetrics && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">Метрики контроля</div>
-              <div className="text-xs">{detail.controlMetrics}</div>
-            </div>
-          )}
-          {detail.fulfillmentMethod && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">Способ исполнения</div>
-              <div className="text-xs">{detail.fulfillmentMethod}</div>
             </div>
           )}
         </div>
