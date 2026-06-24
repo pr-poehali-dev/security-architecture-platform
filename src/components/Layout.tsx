@@ -11,7 +11,7 @@ export const NAV: NavItem[] = [
   { id: 'tech-domain',   label: 'Технический домен',              icon: 'Server',       group: 'Домены',       count: 41  },
   { id: 'technologies',  label: 'Технологии',                     icon: 'Cpu',          group: 'Домены',       count: 76  },
   { id: 'requirements',  label: 'Требования',                     icon: 'ListChecks',   group: 'Управление',   count: 312 },
-  { id: 'solutions',     label: 'Орг. и технические решения',     icon: 'Workflow',     group: 'Управление',   count: 58  },
+  { id: 'solutions',     label: 'Орг. и технические решения',     icon: 'Workflow',     group: 'Управление'              },
   { id: 'hardening',     label: 'Харденинг и конфигурации',       icon: 'ShieldCheck',  group: 'Управление',   count: 94  },
   { id: 'architectures', label: 'Архитектуры',                    icon: 'Network',      group: 'Конструктор',  count: 22  },
   { id: 'templates',     label: 'Шаблоны архитектур',             icon: 'Boxes',        group: 'Конструктор',  count: 12  },

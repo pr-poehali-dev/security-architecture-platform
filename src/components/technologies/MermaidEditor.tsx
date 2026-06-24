@@ -7,6 +7,9 @@ interface Props {
   technologyId: string;
   diagrams: MermaidDiagram[];
   onSaved: (d: MermaidDiagram) => void;
+  /** Override save handlers (for non-technology entities) */
+  onAdd?: (title: string, code: string) => Promise<MermaidDiagram>;
+  onUpdate?: (id: number, title: string, code: string) => Promise<MermaidDiagram>;
 }
 
 const SNIPPETS: { label: string; code: string }[] = [
@@ -92,7 +95,7 @@ const SNIPPETS: { label: string; code: string }[] = [
 
 const PLACEHOLDER = SNIPPETS[0].code;
 
-export default function MermaidEditor({ technologyId, diagrams, onSaved }: Props) {
+export default function MermaidEditor({ technologyId, diagrams, onSaved, onAdd, onUpdate }: Props) {
   const [editing, setEditing] = useState<MermaidDiagram | null>(null);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
@@ -125,9 +128,9 @@ export default function MermaidEditor({ technologyId, diagrams, onSaved }: Props
     try {
       let saved: MermaidDiagram;
       if (editing) {
-        saved = await updateMermaid(editing.id, title, code);
+        saved = onUpdate ? await onUpdate(editing.id, title, code) : await updateMermaid(editing.id, title, code);
       } else {
-        saved = await addMermaid(technologyId, title, code);
+        saved = onAdd ? await onAdd(title, code) : await addMermaid(technologyId, title, code);
       }
       onSaved(saved);
       cancel();

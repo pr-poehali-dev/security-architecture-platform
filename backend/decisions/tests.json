@@ -1,0 +1,39 @@
+{
+  "tests": [
+    {
+      "name": "GET list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET not found",
+      "method": "GET",
+      "path": "/?id=tos-99999",
+      "expectedStatus": 404,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Tags suggest",
+      "method": "GET",
+      "path": "/?tags_suggest=",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Decisions suggest",
+      "method": "GET",
+      "path": "/?decisions_suggest=",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Tech suggest",
+      "method": "GET",
+      "path": "/?tech_suggest=",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
