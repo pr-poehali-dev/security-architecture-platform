@@ -445,15 +445,43 @@ def handler(event: dict, context) -> dict:
 
                 # ── GET list ──────────────────────────────────────────────
                 if method == "GET" and not tmpl_id:
-                    cur.execute(
-                        f"SELECT id, name, owner, status, template_type, description, created_at, updated_at FROM {SCHEMA}.arch_templates ORDER BY created_at DESC"
-                    )
+                    # Один запрос: шаблоны + последняя версия через подзапрос
+                    cur.execute(f"""
+                        SELECT t.id, t.name, t.owner, t.status, t.template_type,
+                               t.description, t.created_at, t.updated_at,
+                               (SELECT v.version FROM {SCHEMA}.arch_template_versions v
+                                WHERE v.template_id = t.id ORDER BY v.changed_at DESC LIMIT 1) AS version
+                        FROM {SCHEMA}.arch_templates t
+                        ORDER BY t.created_at DESC
+                    """)
                     rows = cur.fetchall()
+                    if not rows:
+                        return ok([])
+                    ids = [r[0] for r in rows]
+                    # Теги одним запросом
+                    ph = ",".join(["%s"] * len(ids))
+                    cur.execute(
+                        f"""SELECT att.template_id, tg.id, tg.name
+                            FROM {SCHEMA}.arch_template_tags att
+                            JOIN {SCHEMA}.tags tg ON tg.id = att.tag_id
+                            WHERE att.template_id IN ({ph}) AND att.is_active = true
+                            ORDER BY tg.name""",
+                        ids,
+                    )
+                    tags_map: dict = {i: [] for i in ids}
+                    for tr in cur.fetchall():
+                        tags_map[tr[0]].append({"id": tr[1], "name": tr[2]})
                     result = []
                     for row in rows:
-                        tags = get_tags(cur, row[0])
-                        version = get_version(cur, row[0])
-                        result.append(row_to_dict(row, tags, version))
+                        base = {
+                            "id": row[0], "name": row[1], "owner": row[2],
+                            "status": row[3], "statusLabel": STATUS_MAP.get(row[3], row[3]),
+                            "templateType": row[4], "typeLabel": TYPE_MAP.get(row[4], row[4]),
+                            "description": row[5], "createdAt": row[6], "updatedAt": row[7],
+                            "version": row[8] or "1.0",
+                            "tags": tags_map.get(row[0], []),
+                        }
+                        result.append(base)
                     return ok(result)
 
                 # ── GET one ───────────────────────────────────────────────
@@ -478,9 +506,10 @@ def handler(event: dict, context) -> dict:
                     related = get_related_templates(cur, tmpl_id)
                     technologies = get_technologies(cur, tmpl_id)
                     decisions = get_decisions(cur, tmpl_id)
+                    # Требования — только если есть технологии или решения
                     tech_ids = [t["id"] for t in technologies]
                     dec_ids = [d["id"] for d in decisions]
-                    req_by_domain = get_requirements_by_domain(cur, tech_ids, dec_ids)
+                    req_by_domain = get_requirements_by_domain(cur, tech_ids, dec_ids) if (tech_ids or dec_ids) else []
                     return ok(row_to_dict(row, tags, version, mermaid, files, versions,
                                          related, technologies, decisions, req_by_domain))
 
