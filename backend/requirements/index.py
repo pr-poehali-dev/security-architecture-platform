@@ -1,12 +1,13 @@
 """
 CRUD API для раздела «Требования».
 
-GET  /                      — список всех требований
-GET  /?id=...               — карточка + версии + теги + технологии
-GET  /?tags_suggest=...     — автодополнение тегов
-GET  /?tech_suggest=...     — поиск технологий для связи
-POST /                      — создать требование
-PUT  /                      — обновить требование
+GET  /                        — список всех требований
+GET  /?id=...                 — карточка + версии + теги + технологии + тех.домен
+GET  /?tags_suggest=...       — автодополнение тегов
+GET  /?tech_suggest=...       — поиск технологий для связи
+GET  /?tech_domain_suggest=.. — поиск технических доменов
+POST /                        — создать требование
+PUT  /                        — обновить требование
 """
 
 import json
@@ -124,7 +125,32 @@ def set_technologies(cur, req_id: str, tech_ids: list):
         )
 
 
-def row_to_dict(row, tags, cur_version, technologies=None, versions=None):
+def get_tech_domain(cur, req_id: str) -> dict | None:
+    cur.execute(
+        """
+        SELECT td.id, td.name, td.status FROM tech_domains td
+        JOIN requirement_tech_domain rtd ON rtd.tech_domain_id = td.id
+        WHERE rtd.requirement_id = %s
+        """,
+        (req_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+    return {"id": row[0], "name": row[1], "status": row[2],
+            "statusLabel": STATUS_MAP.get(row[2], row[2])}
+
+
+def set_tech_domain(cur, req_id: str, tech_domain_id: str | None):
+    cur.execute("DELETE FROM requirement_tech_domain WHERE requirement_id = %s", (req_id,))
+    if tech_domain_id:
+        cur.execute(
+            "INSERT INTO requirement_tech_domain (requirement_id, tech_domain_id) VALUES (%s, %s) ON CONFLICT (requirement_id) DO UPDATE SET tech_domain_id = EXCLUDED.tech_domain_id",
+            (req_id, tech_domain_id),
+        )
+
+
+def row_to_dict(row, tags, cur_version, technologies=None, versions=None, tech_domain=None):
     d = {
         "id": row[0],
         "shortDesc": row[1],
@@ -144,6 +170,7 @@ def row_to_dict(row, tags, cur_version, technologies=None, versions=None):
         "updatedAt": row[13],
         "version": cur_version,
         "tags": tags,
+        "techDomain": tech_domain,
     }
     if technologies is not None:
         d["technologies"] = technologies
@@ -162,6 +189,7 @@ def handler(event: dict, context) -> dict:
     req_id = params.get("id")
     tags_suggest = params.get("tags_suggest")
     tech_suggest = params.get("tech_suggest")
+    tech_domain_suggest = params.get("tech_domain_suggest")
 
     conn = get_conn()
     try:
@@ -192,6 +220,19 @@ def handler(event: dict, context) -> dict:
                         cur.execute("SELECT id, name, status FROM technologies ORDER BY name LIMIT 50")
                     return ok([{"id": r[0], "name": r[1], "status": r[2]} for r in cur.fetchall()])
 
+                # ── Tech domains search ────────────────────────────────
+                if method == "GET" and tech_domain_suggest is not None:
+                    q = tech_domain_suggest.strip()
+                    if q:
+                        cur.execute(
+                            "SELECT id, name, status FROM tech_domains WHERE name ILIKE %s ORDER BY name LIMIT 20",
+                            (f"%{q}%",),
+                        )
+                    else:
+                        cur.execute("SELECT id, name, status FROM tech_domains ORDER BY name LIMIT 50")
+                    return ok([{"id": r[0], "name": r[1], "status": r[2],
+                                "statusLabel": STATUS_MAP.get(r[2], r[2])} for r in cur.fetchall()])
+
                 # ── GET list ──────────────────────────────────────────
                 if method == "GET" and not req_id:
                     cur.execute(
@@ -215,7 +256,8 @@ def handler(event: dict, context) -> dict:
                     for r in rows:
                         tags = get_tags(cur, r[0])
                         techs = get_technologies(cur, r[0])
-                        result.append(row_to_dict(r, tags, r[14] or "1.0", technologies=techs))
+                        tech_domain = get_tech_domain(cur, r[0])
+                        result.append(row_to_dict(r, tags, r[14] or "1.0", technologies=techs, tech_domain=tech_domain))
                     return ok(result)
 
                 # ── GET single ────────────────────────────────────────
@@ -248,7 +290,8 @@ def handler(event: dict, context) -> dict:
                     cur_version = versions[0]["version"] if versions else "1.0"
                     tags = get_tags(cur, req_id)
                     techs = get_technologies(cur, req_id)
-                    return ok(row_to_dict(row, tags, cur_version, technologies=techs, versions=versions))
+                    tech_domain = get_tech_domain(cur, req_id)
+                    return ok(row_to_dict(row, tags, cur_version, technologies=techs, versions=versions, tech_domain=tech_domain))
 
                 # ── POST create ───────────────────────────────────────
                 if method == "POST":
@@ -286,6 +329,7 @@ def handler(event: dict, context) -> dict:
                     )
                     set_tags(cur, new_id, body.get("tags", []))
                     set_technologies(cur, new_id, body.get("technologyIds", []))
+                    set_tech_domain(cur, new_id, body.get("techDomainId") or None)
 
                     cur.execute(
                         "SELECT id, short_desc, description, req_type, owner, status, normative_doc, control_metrics, fulfillment_method, is_procurement, score_point, score_weight, created_at, updated_at FROM requirements WHERE id = %s",
@@ -294,7 +338,8 @@ def handler(event: dict, context) -> dict:
                     row = cur.fetchone()
                     tags = get_tags(cur, new_id)
                     techs = get_technologies(cur, new_id)
-                    return ok(row_to_dict(row, tags, "1.0", technologies=techs), 201)
+                    tech_domain = get_tech_domain(cur, new_id)
+                    return ok(row_to_dict(row, tags, "1.0", technologies=techs, tech_domain=tech_domain), 201)
 
                 # ── PUT update ────────────────────────────────────────
                 if method == "PUT":
@@ -338,6 +383,7 @@ def handler(event: dict, context) -> dict:
                     )
                     set_tags(cur, uid, body.get("tags", []))
                     set_technologies(cur, uid, body.get("technologyIds", []))
+                    set_tech_domain(cur, uid, body.get("techDomainId") or None)
 
                     cur.execute(
                         "SELECT id, short_desc, description, req_type, owner, status, normative_doc, control_metrics, fulfillment_method, is_procurement, score_point, score_weight, created_at, updated_at FROM requirements WHERE id = %s",
@@ -346,7 +392,8 @@ def handler(event: dict, context) -> dict:
                     row = cur.fetchone()
                     tags = get_tags(cur, uid)
                     techs = get_technologies(cur, uid)
-                    return ok(row_to_dict(row, tags, new_ver, technologies=techs))
+                    tech_domain = get_tech_domain(cur, uid)
+                    return ok(row_to_dict(row, tags, new_ver, technologies=techs, tech_domain=tech_domain))
 
                 return err("Метод не поддерживается", 405)
 

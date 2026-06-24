@@ -5,6 +5,7 @@ export type ReqType = 'technical' | 'functional' | 'non_functional' | 'organizat
 
 export interface TagRef { id: number; name: string }
 export interface TechRef { id: string; name: string; status: string }
+export interface TechDomainRef { id: string; name: string; status: string; statusLabel: string }
 
 export interface RequirementVersion {
   id: number;
@@ -33,6 +34,7 @@ export interface Requirement {
   updatedAt: string;
   tags: TagRef[];
   technologies: TechRef[];
+  techDomain: TechDomainRef | null;
 }
 
 export interface RequirementDetail extends Requirement {
@@ -53,6 +55,7 @@ export interface RequirementFormData {
   scoreWeight: number;
   tags: string[];
   technologyIds: string[];
+  techDomainId: string | null;
   changeNote?: string;
 }
 
@@ -90,6 +93,12 @@ export async function fetchTagsSuggest(query: string): Promise<TagRef[]> {
 
 export async function fetchTechSuggest(query: string): Promise<TechRef[]> {
   const res = await fetch(`${BASE}?tech_suggest=${encodeURIComponent(query)}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function fetchTechDomainSuggest(query: string): Promise<TechDomainRef[]> {
+  const res = await fetch(`${BASE}?tech_domain_suggest=${encodeURIComponent(query)}`);
   if (!res.ok) return [];
   return res.json();
 }

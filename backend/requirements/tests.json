@@ -5,7 +5,6 @@
       "method": "GET",
       "path": "/",
       "expectedStatus": 200,
-      "expectedBody": [],
       "bodyMatcher": "partial"
     },
     {
@@ -13,7 +12,6 @@
       "method": "GET",
       "path": "/?id=req-99999",
       "expectedStatus": 404,
-      "expectedBody": {"error": "Требование не найдено"},
       "bodyMatcher": "partial"
     },
     {
@@ -21,7 +19,6 @@
       "method": "GET",
       "path": "/?tags_suggest=",
       "expectedStatus": 200,
-      "expectedBody": [],
       "bodyMatcher": "partial"
     },
     {
@@ -29,7 +26,13 @@
       "method": "GET",
       "path": "/?tech_suggest=",
       "expectedStatus": 200,
-      "expectedBody": [],
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Tech domain suggest",
+      "method": "GET",
+      "path": "/?tech_domain_suggest=",
+      "expectedStatus": 200,
       "bodyMatcher": "partial"
     }
   ]

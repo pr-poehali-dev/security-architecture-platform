@@ -9,12 +9,14 @@ import {
   updateRequirement,
   fetchTagsSuggest,
   fetchTechSuggest,
+  fetchTechDomainSuggest,
   RequirementFormData,
   ReqStatus,
   ReqType,
   STATUS_OPTIONS,
   TYPE_OPTIONS,
   TechRef,
+  TechDomainRef,
 } from '@/api/requirements';
 
 const EMPTY: RequirementFormData = {
@@ -31,6 +33,7 @@ const EMPTY: RequirementFormData = {
   scoreWeight: 1,
   tags: [],
   technologyIds: [],
+  techDomainId: null,
   changeNote: '',
 };
 
@@ -78,6 +81,13 @@ export default function RequirementForm() {
   const techDebounce = useRef<ReturnType<typeof setTimeout>>();
   const techRef = useRef<HTMLDivElement>(null);
 
+  const [selectedTechDomain, setSelectedTechDomain] = useState<TechDomainRef | null>(null);
+  const [tdQuery, setTdQuery] = useState('');
+  const [tdSuggestions, setTdSuggestions] = useState<TechDomainRef[]>([]);
+  const [tdOpen, setTdOpen] = useState(false);
+  const tdDebounce = useRef<ReturnType<typeof setTimeout>>();
+  const tdRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!isEdit || !id) return;
     fetchRequirement(id)
@@ -99,6 +109,10 @@ export default function RequirementForm() {
           changeNote: '',
         });
         setSelectedTechs(r.technologies);
+        if (r.techDomain) {
+          setSelectedTechDomain(r.techDomain);
+          set('techDomainId', r.techDomain.id);
+        }
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -115,10 +129,19 @@ export default function RequirementForm() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (techRef.current && !techRef.current.contains(e.target as Node)) setTechOpen(false);
+      if (tdRef.current && !tdRef.current.contains(e.target as Node)) setTdOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    clearTimeout(tdDebounce.current);
+    tdDebounce.current = setTimeout(async () => {
+      const res = await fetchTechDomainSuggest(tdQuery);
+      setTdSuggestions(res);
+    }, 200);
+  }, [tdQuery]);
 
   const set = <K extends keyof RequirementFormData>(k: K, v: RequirementFormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -432,6 +455,48 @@ export default function RequirementForm() {
                       <Icon name="Cpu" size={14} className="text-muted-foreground shrink-0" />
                       <span className="flex-1">{t.name}</span>
                       <span className="font-mono text-[10px] text-muted-foreground">{t.id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Field>
+
+          <Field label="Технический домен">
+            <div ref={tdRef} className="relative">
+              {selectedTechDomain ? (
+                <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border bg-background">
+                  <Icon name="Layers" size={14} className="text-accent shrink-0" />
+                  <span className="flex-1 text-sm">{selectedTechDomain.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedTechDomain(null); set('techDomainId', null); setTdQuery(''); }}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <Icon name="X" size={14} />
+                  </button>
+                </div>
+              ) : (
+                <input
+                  value={tdQuery}
+                  onChange={(e) => { setTdQuery(e.target.value); setTdOpen(true); }}
+                  onFocus={() => setTdOpen(true)}
+                  placeholder="Найти технический домен…"
+                  className={INPUT}
+                />
+              )}
+              {tdOpen && !selectedTechDomain && tdSuggestions.length > 0 && (
+                <div className="absolute z-20 top-full mt-1 w-full rounded-md border border-border bg-card shadow-lg max-h-52 overflow-y-auto">
+                  {tdSuggestions.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); setSelectedTechDomain(d); set('techDomainId', d.id); setTdQuery(''); setTdOpen(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <Icon name="Layers" size={14} className="text-muted-foreground shrink-0" />
+                      <span className="flex-1">{d.name}</span>
+                      <span className="text-[10px] text-muted-foreground">{d.statusLabel}</span>
                     </button>
                   ))}
                 </div>

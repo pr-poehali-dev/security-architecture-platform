@@ -143,6 +143,21 @@ export default function RequirementView() {
 
         {/* Right — meta */}
         <div className="space-y-4">
+          {/* Tech domain */}
+          {req.techDomain && (
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-3">Технический домен</div>
+              <Link
+                to={`/tech-domains/${req.techDomain.id}`}
+                className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/30 text-sm hover:border-accent hover:text-accent transition-colors"
+              >
+                <Icon name="Layers" size={14} />
+                <span className="flex-1">{req.techDomain.name}</span>
+                <span className="text-[10px] text-muted-foreground">{req.techDomain.statusLabel}</span>
+              </Link>
+            </div>
+          )}
+
           {/* Score */}
           <div className="rounded-lg border border-border bg-card p-5 space-y-4">
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Скор</div>
