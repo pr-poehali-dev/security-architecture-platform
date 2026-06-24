@@ -162,18 +162,21 @@ export default function ArchTemplateList() {
 
         {!loading && filtered.length > 0 && (
           <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div className="grid grid-cols-[1fr_120px_130px_120px_80px_50px] gap-4 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground font-medium">
-              {([ ['name','Название / Теги'], ['templateType','Тип'], ['owner','Владелец'], ['status','Статус'], ['version','Версия'] ] as const).map(([col, label]) => (
-                <button key={col} type="button" onClick={() => handleSort(col)}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors text-left">
-                  {label}
-                  <Icon
-                    name={sortCol === col ? (sortDir === 'asc' ? 'ChevronUp' : 'ChevronDown') : 'ChevronsUpDown'}
-                    size={12}
-                    className={sortCol === col ? 'text-accent' : 'opacity-40'}
-                  />
-                </button>
-              ))}
+            <div className="grid grid-cols-[1fr_120px_130px_120px_80px_50px] border-b border-border bg-muted/40">
+              {([ ['name','Название / Теги'], ['templateType','Тип'], ['owner','Владелец'], ['status','Статус'], ['version','Версия'] ] as const).map(([col, label]) => {
+                const active = sortCol === col;
+                return (
+                  <button key={col} type="button" onClick={() => handleSort(col)}
+                    className={`group flex items-center gap-1.5 px-4 py-2.5 text-[11px] uppercase tracking-widest font-medium transition-colors select-none text-left ${active ? 'text-accent bg-accent/5' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'}`}>
+                    <span className={active ? 'underline underline-offset-2' : ''}>{label}</span>
+                    <Icon
+                      name={active ? (sortDir === 'asc' ? 'ArrowUp' : 'ArrowDown') : 'ArrowUpDown'}
+                      size={13}
+                      className={active ? 'text-accent' : 'opacity-30 group-hover:opacity-60 transition-opacity'}
+                    />
+                  </button>
+                );
+              })}
               <span />
             </div>
             {filtered.map((d, i) => (
