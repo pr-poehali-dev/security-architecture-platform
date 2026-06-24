@@ -44,6 +44,16 @@ const REQ_TYPE_MAP: Record<string, string> = {
 function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   const has = (key: string) => !excluded.has(key);
   const lines: string[] = [];
+  // Защита от undefined-полей (данные могут прийти частично)
+  const _tags = data.tags ?? [];
+  const _technologies = data.technologies ?? [];
+  const _decisions = data.decisions ?? [];
+  const _relatedTemplates = data.relatedTemplates ?? [];
+  const _requirementsByDomain = data.requirementsByDomain ?? [];
+  const _mermaidDiagrams = data.mermaidDiagrams ?? [];
+  const _externalLinks = data.externalLinks ?? [];
+  const _files = data.files ?? [];
+  const _versions = data.versions ?? [];
 
   lines.push(`# ${data.name}`);
   lines.push('');
@@ -64,8 +74,8 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // Теги
-  if (has('tags') && data.tags.length > 0) {
-    const activeTags = data.tags.filter(t => !excluded.has(`tag-${t.id}`));
+  if (has('tags') && _tags.length > 0) {
+    const activeTags = _tags.filter(t => !excluded.has(`tag-${t.id}`));
     if (activeTags.length > 0) {
       lines.push(`**Теги:** ${activeTags.map(t => `\`#${t.name}\``).join(' ')}`);
       lines.push('');
@@ -73,8 +83,8 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // Технологии
-  if (has('technologies') && data.technologies.length > 0) {
-    const active = data.technologies.filter(t => !excluded.has(`tech-${t.id}`));
+  if (has('technologies') && _technologies.length > 0) {
+    const active = _technologies.filter(t => !excluded.has(`tech-${t.id}`));
     if (active.length > 0) {
       lines.push('## Технологии');
       lines.push('');
@@ -84,8 +94,8 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // Решения
-  if (has('decisions') && data.decisions.length > 0) {
-    const active = data.decisions.filter(d => !excluded.has(`dec-${d.id}`));
+  if (has('decisions') && _decisions.length > 0) {
+    const active = _decisions.filter(d => !excluded.has(`dec-${d.id}`));
     if (active.length > 0) {
       lines.push('## Архитектурные решения');
       lines.push('');
@@ -95,8 +105,8 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // Связанные шаблоны
-  if (has('relatedTemplates') && data.relatedTemplates.length > 0) {
-    const active = data.relatedTemplates.filter(r => !excluded.has(`rel-${r.id}`));
+  if (has('relatedTemplates') && _relatedTemplates.length > 0) {
+    const active = _relatedTemplates.filter(r => !excluded.has(`rel-${r.id}`));
     if (active.length > 0) {
       lines.push('## Связанные шаблоны');
       lines.push('');
@@ -107,7 +117,7 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
 
   // Требования по доменам
   if (has('requirements')) {
-    const activeGroups = data.requirementsByDomain
+    const activeGroups = _requirementsByDomain
       .map(g => ({
         ...g,
         requirements: g.requirements.filter((r: ExportRequirement) => !excluded.has(`req-${r.id}`)),
@@ -136,8 +146,8 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // Mermaid-диаграммы
-  if (has('mermaid') && data.mermaidDiagrams.length > 0) {
-    const active = data.mermaidDiagrams.filter(m => !excluded.has(`mermaid-${m.id}`));
+  if (has('mermaid') && _mermaidDiagrams.length > 0) {
+    const active = _mermaidDiagrams.filter(m => !excluded.has(`mermaid-${m.id}`));
     if (active.length > 0) {
       lines.push('## Диаграммы');
       lines.push('');
@@ -153,8 +163,8 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // Внешние ссылки
-  if (has('externalLinks') && data.externalLinks.length > 0) {
-    const active = data.externalLinks.filter(l => !excluded.has(`link-${l.id}`));
+  if (has('externalLinks') && _externalLinks.length > 0) {
+    const active = _externalLinks.filter(l => !excluded.has(`link-${l.id}`));
     if (active.length > 0) {
       lines.push('## Ссылки');
       lines.push('');
@@ -164,8 +174,8 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // Файлы
-  if (has('files') && data.files.length > 0) {
-    const active = data.files.filter(f => !excluded.has(`file-${f.id}`));
+  if (has('files') && _files.length > 0) {
+    const active = _files.filter(f => !excluded.has(`file-${f.id}`));
     if (active.length > 0) {
       lines.push('## Файлы');
       lines.push('');
@@ -175,12 +185,12 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
   }
 
   // История версий
-  if (has('versions') && data.versions.length > 0) {
+  if (has('versions') && _versions.length > 0) {
     lines.push('## История версий');
     lines.push('');
     lines.push('| Версия | Дата | Примечание |');
     lines.push('|---|---|---|');
-    data.versions.forEach(v => {
+    _versions.forEach(v => {
       lines.push(`| ${v.version} | ${fmtDate(v.changedAt)} | ${v.changeNote || '—'} |`);
     });
     lines.push('');
@@ -360,10 +370,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               </Section>
 
               {/* Теги */}
-              {data.tags.length > 0 && (
+              {(data.tags ?? []).length > 0 && (
                 <Section icon="Tag" title="Теги" sectionKey="tags" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-wrap gap-1.5">
-                    {data.tags.map((t: TagRef) => (
+                    {(data.tags ?? []).map((t: TagRef) => (
                       <Chip key={t.id} label={`#${t.name}`} removed={excluded.has(`tag-${t.id}`)} onRemove={() => toggle(`tag-${t.id}`)} />
                     ))}
                   </div>
@@ -371,10 +381,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* Технологии */}
-              {data.technologies.length > 0 && (
+              {(data.technologies ?? []).length > 0 && (
                 <Section icon="Cpu" title="Технологии" sectionKey="technologies" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-wrap gap-1.5">
-                    {data.technologies.map((t: TechRef) => (
+                    {(data.technologies ?? []).map((t: TechRef) => (
                       <Chip key={t.id} label={t.name} removed={excluded.has(`tech-${t.id}`)} onRemove={() => toggle(`tech-${t.id}`)} />
                     ))}
                   </div>
@@ -382,10 +392,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* Решения */}
-              {data.decisions.length > 0 && (
+              {(data.decisions ?? []).length > 0 && (
                 <Section icon="Lightbulb" title="Архитектурные решения" sectionKey="decisions" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-col gap-1.5">
-                    {data.decisions.map((d: DecisionRef) => (
+                    {(data.decisions ?? []).map((d: DecisionRef) => (
                       <Chip key={d.id} label={`${d.name} (${d.typeLabel})`} removed={excluded.has(`dec-${d.id}`)} onRemove={() => toggle(`dec-${d.id}`)} />
                     ))}
                   </div>
@@ -393,10 +403,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* Связанные шаблоны */}
-              {data.relatedTemplates.length > 0 && (
+              {(data.relatedTemplates ?? []).length > 0 && (
                 <Section icon="Link" title="Связанные шаблоны" sectionKey="relatedTemplates" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-wrap gap-1.5">
-                    {data.relatedTemplates.map(r => (
+                    {(data.relatedTemplates ?? []).map(r => (
                       <Chip key={r.id} label={r.name} removed={excluded.has(`rel-${r.id}`)} onRemove={() => toggle(`rel-${r.id}`)} />
                     ))}
                   </div>
@@ -404,10 +414,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* Требования */}
-              {data.requirementsByDomain.length > 0 && (
+              {(data.requirementsByDomain ?? []).length > 0 && (
                 <Section icon="ListChecks" title="Требования" sectionKey="requirements" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-col gap-3">
-                    {data.requirementsByDomain.map((g: ExportRequirementGroup) => (
+                    {(data.requirementsByDomain ?? []).map((g: ExportRequirementGroup) => (
                       <div key={g.domainId ?? '__none__'}>
                         <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-1">
                           <Icon name="Layers" size={9} /> {g.domainName}
@@ -429,10 +439,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* Mermaid */}
-              {data.mermaidDiagrams.length > 0 && (
+              {(data.mermaidDiagrams ?? []).length > 0 && (
                 <Section icon="GitBranch" title="Диаграммы" sectionKey="mermaid" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-col gap-3">
-                    {data.mermaidDiagrams.map((m: MermaidDiagram) => (
+                    {(data.mermaidDiagrams ?? []).map((m: MermaidDiagram) => (
                       <div key={m.id} className={`rounded-md border overflow-hidden transition-opacity ${excluded.has(`mermaid-${m.id}`) ? 'opacity-30' : 'border-border'}`}>
                         <div className="flex items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border">
                           <span className="text-xs font-medium">{m.title || 'Без названия'}</span>
@@ -453,10 +463,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* Внешние ссылки */}
-              {data.externalLinks.length > 0 && (
+              {(data.externalLinks ?? []).length > 0 && (
                 <Section icon="ExternalLink" title="Внешние ссылки" sectionKey="externalLinks" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-col gap-1.5">
-                    {data.externalLinks.map((l: ExternalLink) => (
+                    {(data.externalLinks ?? []).map((l: ExternalLink) => (
                       <Chip key={l.id} label={l.label || l.url} removed={excluded.has(`link-${l.id}`)} onRemove={() => toggle(`link-${l.id}`)} />
                     ))}
                   </div>
@@ -464,10 +474,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* Файлы */}
-              {data.files.length > 0 && (
+              {(data.files ?? []).length > 0 && (
                 <Section icon="Paperclip" title="Файлы" sectionKey="files" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-col gap-1.5">
-                    {data.files.map((f: TemplateFile) => (
+                    {(data.files ?? []).map((f: TemplateFile) => (
                       <Chip key={f.id} label={`${f.filename} (${fmtSize(f.sizeBytes)})`} removed={excluded.has(`file-${f.id}`)} onRemove={() => toggle(`file-${f.id}`)} />
                     ))}
                   </div>
@@ -475,18 +485,18 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               )}
 
               {/* История */}
-              {data.versions.length > 0 && (
+              {(data.versions ?? []).length > 0 && (
                 <Section icon="History" title="История версий" sectionKey="versions" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
                   <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    {data.versions.slice(0, 5).map(v => (
+                    {(data.versions ?? []).slice(0, 5).map(v => (
                       <div key={v.version} className="flex gap-2">
                         <span className="font-mono font-semibold text-foreground w-10">{v.version}</span>
                         <span>{fmtDate(v.changedAt)}</span>
                         {v.changeNote && <span className="text-muted-foreground/70">— {v.changeNote}</span>}
                       </div>
                     ))}
-                    {data.versions.length > 5 && (
-                      <span className="text-muted-foreground/50">+ ещё {data.versions.length - 5} версий</span>
+                    {(data.versions ?? []).length > 5 && (
+                      <span className="text-muted-foreground/50">+ ещё {(data.versions ?? []).length - 5} версий</span>
                     )}
                   </div>
                 </Section>
