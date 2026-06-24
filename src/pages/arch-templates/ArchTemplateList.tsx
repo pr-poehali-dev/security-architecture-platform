@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { fetchArchTemplates, ArchTemplate, STATUS_OPTIONS, TYPE_OPTIONS } from '@/api/archTemplates';
+import ArchTemplateExportModal from './ArchTemplateExportModal';
 
 const STATUS_STYLE: Record<string, string> = {
   active:         'bg-success/10 text-success',
@@ -24,6 +25,7 @@ export default function ArchTemplateList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [exportTarget, setExportTarget] = useState<{ id: string; name: string } | null>(null);
   const [sortCol, setSortCol] = useState<'id' | 'name' | 'templateType' | 'owner' | 'status' | 'version'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -247,13 +249,28 @@ export default function ArchTemplateList() {
                 </div>
                 <div className="text-xs font-mono text-muted-foreground">{d.version}</div>
                 <div className="flex justify-end">
-                  <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExportTarget({ id: d.id, name: d.name }); }}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
+                    title="Экспорт в .md"
+                  >
+                    <Icon name="FileDown" size={15} />
+                  </button>
                 </div>
               </Link>
             ))}
           </div>
         )}
       </div>
+
+      {exportTarget && (
+        <ArchTemplateExportModal
+          templateId={exportTarget.id}
+          templateName={exportTarget.name}
+          onClose={() => setExportTarget(null)}
+        />
+      )}
     </>
   );
 }

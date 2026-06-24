@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import MarkdownViewer from '@/components/technologies/MarkdownViewer';
 import MermaidPreview from '@/components/technologies/MermaidPreview';
 import RequirementsSection from './RequirementsSection';
+import ArchTemplateExportModal from './ArchTemplateExportModal';
 import {
   fetchArchTemplate,
   ArchTemplateDetail,
@@ -39,6 +40,7 @@ export default function ArchTemplateView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -102,13 +104,22 @@ export default function ArchTemplateView() {
                 <p className="text-primary-foreground/60 text-sm font-mono mt-0.5">{data.id}</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate(`/templates/${id}/edit`)}
-              className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
-            >
-              <Icon name="Pencil" size={15} /> Редактировать
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setExportOpen(true)}
+                className="h-9 px-3 rounded-md border border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground text-sm font-medium flex items-center gap-2 hover:bg-primary-foreground/20 transition-colors"
+              >
+                <Icon name="FileDown" size={15} /> Экспорт
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/templates/${id}/edit`)}
+                className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Icon name="Pencil" size={15} /> Редактировать
+              </button>
+            </div>
           </div>
           {data.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
@@ -380,6 +391,14 @@ export default function ArchTemplateView() {
         )}
 
       </div>
+
+      {exportOpen && id && data && (
+        <ArchTemplateExportModal
+          templateId={id}
+          templateName={data.name}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
     </>
   );
 }

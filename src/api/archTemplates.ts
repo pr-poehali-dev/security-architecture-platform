@@ -89,6 +89,44 @@ export const fetchArchTemplates = () =>
 export const fetchArchTemplate = (id: string) =>
   req<ArchTemplateDetail>(`${BASE}?id=${encodeURIComponent(id)}`);
 
+export interface ExportRequirement extends RequirementRef {
+  description?: string;
+  reqType?: string;
+  reqTypeLabel?: string;
+  owner?: string;
+  normativeDoc?: string;
+  controlMetrics?: string;
+  fulfillmentMethod?: string;
+  isProcurement?: boolean;
+  scorePoint?: number;
+  scoreWeight?: number;
+}
+export interface ExportRequirementGroup {
+  domainId: string | null;
+  domainName: string;
+  requirements: ExportRequirement[];
+}
+export interface ExternalLink { id: number; url: string; label: string; }
+export interface ExportData {
+  id: string; name: string; owner: string;
+  status: string; statusLabel: string;
+  templateType: string; typeLabel: string;
+  description: string; version: string;
+  createdAt: string; updatedAt: string;
+  tags: TagRef[];
+  technologies: TechRef[];
+  decisions: DecisionRef[];
+  mermaidDiagrams: MermaidDiagram[];
+  files: TemplateFile[];
+  externalLinks: ExternalLink[];
+  relatedTemplates: TemplateRef[];
+  versions: TemplateVersion[];
+  requirementsByDomain: ExportRequirementGroup[];
+}
+
+export const fetchArchTemplateExport = (id: string) =>
+  req<ExportData>(`${BASE}?id=${encodeURIComponent(id)}&action=export`);
+
 export const fetchTagsSuggest = (q: string) =>
   req<TagRef[]>(`${BASE}?tags_suggest=${encodeURIComponent(q)}`);
 

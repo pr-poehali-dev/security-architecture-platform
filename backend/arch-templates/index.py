@@ -562,6 +562,87 @@ def handler(event: dict, context) -> dict:
                     return ok(row_to_dict(row, tags, version, mermaid, files, versions,
                                          related, technologies, decisions, req_by_domain))
 
+                # ── GET export (полные данные для экспорта) ───────────────
+                if method == "GET" and action == "export" and tmpl_id:
+                    cur.execute(
+                        f"SELECT id, name, owner, status, template_type, description, created_at, updated_at FROM {SCHEMA}.arch_templates WHERE id = %s",
+                        (tmpl_id,),
+                    )
+                    row = cur.fetchone()
+                    if not row:
+                        return err("Шаблон не найден", 404)
+                    version = get_version(cur, tmpl_id)
+                    tags = get_tags(cur, tmpl_id)
+                    technologies = get_technologies(cur, tmpl_id)
+                    decisions = get_decisions(cur, tmpl_id)
+                    mermaid = get_mermaid(cur, tmpl_id)
+                    files = get_files(cur, tmpl_id)
+                    related = get_related_templates(cur, tmpl_id)
+                    # Внешние ссылки
+                    cur.execute(
+                        f"SELECT id, url, label FROM {SCHEMA}.arch_template_links WHERE template_id = %s AND is_active = true ORDER BY created_at",
+                        (tmpl_id,),
+                    )
+                    ext_links = [{"id": r[0], "url": r[1], "label": r[2]} for r in cur.fetchall()]
+                    # История версий
+                    cur.execute(
+                        f"SELECT version, change_note, changed_at FROM {SCHEMA}.arch_template_versions WHERE template_id = %s ORDER BY changed_at DESC",
+                        (tmpl_id,),
+                    )
+                    versions = [{"version": r[0], "changeNote": r[1], "changedAt": str(r[2])} for r in cur.fetchall()]
+                    # Требования с полными данными
+                    tech_ids = [t["id"] for t in technologies]
+                    dec_ids = [d["id"] for d in decisions]
+                    req_by_domain = get_requirements_by_domain(cur, tech_ids, dec_ids) if (tech_ids or dec_ids) else []
+                    # Для каждого требования подтягиваем полные поля
+                    all_req_ids = [r["id"] for g in req_by_domain for r in g["requirements"]]
+                    req_details: dict = {}
+                    if all_req_ids:
+                        ph2 = ",".join(["%s"] * len(all_req_ids))
+                        cur.execute(
+                            f"""SELECT id, short_desc, description, req_type, owner, status,
+                                       normative_doc, control_metrics, fulfillment_method,
+                                       is_procurement, score_point, score_weight
+                                FROM {SCHEMA}.requirements WHERE id IN ({ph2})""",
+                            all_req_ids,
+                        )
+                        REQ_TYPE_MAP = {"technical": "Технические", "functional": "Функциональные",
+                                        "non_functional": "Нефункциональные", "organizational": "Организационные"}
+                        for rr in cur.fetchall():
+                            req_details[rr[0]] = {
+                                "id": rr[0], "shortDesc": rr[1], "description": rr[2],
+                                "reqType": rr[3], "reqTypeLabel": REQ_TYPE_MAP.get(rr[3], rr[3]),
+                                "owner": rr[4], "status": rr[5],
+                                "normativeDoc": rr[6], "controlMetrics": rr[7],
+                                "fulfillmentMethod": rr[8], "isProcurement": rr[9],
+                                "scorePoint": rr[10], "scoreWeight": rr[11],
+                            }
+                    # Собираем группы с полными данными требований
+                    full_req_groups = []
+                    for g in req_by_domain:
+                        full_reqs = []
+                        for req in g["requirements"]:
+                            detail = req_details.get(req["id"], {})
+                            full_reqs.append({**req, **detail})
+                        full_req_groups.append({"domainId": g["domainId"], "domainName": g["domainName"], "requirements": full_reqs})
+
+                    return ok({
+                        "id": row[0], "name": row[1], "owner": row[2],
+                        "status": row[3], "statusLabel": STATUS_MAP.get(row[3], row[3]),
+                        "templateType": row[4], "typeLabel": TYPE_MAP.get(row[4], row[4]),
+                        "description": row[5], "createdAt": str(row[6]), "updatedAt": str(row[7]),
+                        "version": version,
+                        "tags": tags,
+                        "technologies": technologies,
+                        "decisions": decisions,
+                        "mermaidDiagrams": mermaid,
+                        "files": files,
+                        "externalLinks": ext_links,
+                        "relatedTemplates": related,
+                        "versions": versions,
+                        "requirementsByDomain": full_req_groups,
+                    })
+
                 # ── POST create ───────────────────────────────────────────
                 if method == "POST" and not action:
                     body = parse_body(event)
