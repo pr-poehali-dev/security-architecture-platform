@@ -119,3 +119,56 @@ export async function updateHardening(id: string, data: HardeningFormData): Prom
   }
   return res.json();
 }
+
+export interface ReqImage {
+  id: number;
+  filename: string;
+  s3Key: string;
+  contentType: string;
+  sizeBytes: number;
+  sortOrder: number;
+  createdAt: string;
+  url: string;
+}
+
+export interface ReqContent {
+  markdown: string;
+  updatedAt: string | null;
+  images: ReqImage[];
+}
+
+export async function fetchReqContent(hardeningId: string, requirementId: string): Promise<ReqContent> {
+  const res = await fetch(`${BASE}?req_content&hid=${encodeURIComponent(hardeningId)}&rid=${encodeURIComponent(requirementId)}`);
+  if (!res.ok) return { markdown: '', updatedAt: null, images: [] };
+  return res.json();
+}
+
+export async function saveReqMarkdown(hardeningId: string, requirementId: string, markdown: string): Promise<ReqContent> {
+  const res = await fetch(`${BASE}?action=save_req_content`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hardeningId, requirementId, markdown }),
+  });
+  if (!res.ok) throw new Error('Ошибка сохранения');
+  return res.json();
+}
+
+export async function uploadReqImage(hardeningId: string, requirementId: string, file: File): Promise<ReqImage> {
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+  const dataBase64 = btoa(binary);
+  const res = await fetch(`${BASE}?action=upload_req_image`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      hardeningId, requirementId,
+      filename: file.name,
+      contentType: file.type || 'image/png',
+      dataBase64,
+    }),
+  });
+  if (!res.ok) throw new Error('Ошибка загрузки изображения');
+  return res.json();
+}

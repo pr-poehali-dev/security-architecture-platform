@@ -1,17 +1,23 @@
 """
 CRUD API для раздела «Харденинг и конфигурации».
 
-GET  /                          — список всех карточек
-GET  /?id=...                   — карточка + версии + теги + связи
-GET  /?tags_suggest=...         — автодополнение тегов
-GET  /?solutions_suggest=...    — поиск технических решений
-POST /                          — создать карточку
-PUT  /                          — обновить карточку
+GET  /                              — список всех карточек
+GET  /?id=...                       — карточка + версии + теги + связи + контент требований
+GET  /?tags_suggest=...             — автодополнение тегов
+GET  /?solutions_suggest=...        — поиск технических решений
+GET  /?req_content&hid=...&rid=...  — Markdown + изображения для требования
+POST /                              — создать карточку
+PUT  /                              — обновить карточку
+PUT  /?action=save_req_content      — сохранить Markdown для требования
+POST /?action=upload_req_image      — загрузить изображение для требования
 """
 
+import base64
 import json
 import os
+import uuid
 
+import boto3
 import psycopg2
 
 CORS = {
@@ -26,11 +32,22 @@ STATUS_MAP = {
     "inactive":       "Не активен",
     "archived":       "В архиве",
 }
-STATUS_REVERSE = {v: k for k, v in STATUS_MAP.items()}
+TYPE_MAP = {"technical": "Техническое", "organizational": "Организационное"}
+
+CDN_BASE = f"https://cdn.poehali.dev/projects/{os.environ.get('AWS_ACCESS_KEY_ID', '')}/bucket"
 
 
 def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
+
+
+def s3_client():
+    return boto3.client(
+        "s3",
+        endpoint_url="https://bucket.poehali.dev",
+        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+    )
 
 
 def ok(data, status=200):
@@ -89,19 +106,6 @@ def set_tags(cur, hid: str, tag_names: list):
         row = cur.fetchone()
         if row:
             existing_ids.append(row[0])
-    cur.execute("UPDATE hardening_tags SET tag_id = tag_id WHERE hardening_id = %s AND FALSE", (hid,))
-    cur.execute("SELECT tag_id FROM hardening_tags WHERE hardening_id = %s", (hid,))
-    current_ids = {r[0] for r in cur.fetchall()}
-    target_ids = set(existing_ids)
-    for tid in current_ids - target_ids:
-        cur.execute("UPDATE hardening_tags SET hardening_id = hardening_id WHERE hardening_id = %s AND tag_id = %s AND FALSE", (hid, tid))
-        cur.execute("INSERT INTO hardening_tags (hardening_id, tag_id) SELECT %s, %s WHERE FALSE", (hid, tid))
-    # Простая реализация: удаляем через NOT IN или перезаписываем
-    cur.execute("SELECT tag_id FROM hardening_tags WHERE hardening_id = %s", (hid,))
-    old_ids = [r[0] for r in cur.fetchall()]
-    # Удаляем лишние (через обновление - нельзя DELETE, поэтому используем трюк)
-    # На самом деле DELETE разрешён для связей (не данных пользователя)
-    # Попробуем напрямую
     cur.execute("DELETE FROM hardening_tags WHERE hardening_id = %s", (hid,))
     for tid in existing_ids:
         cur.execute(
@@ -119,7 +123,6 @@ def get_solutions(cur, hid: str) -> list:
         """,
         (hid,),
     )
-    TYPE_MAP = {"technical": "Техническое", "organizational": "Организационное"}
     return [{"id": r[0], "name": r[1], "status": r[2],
              "statusLabel": STATUS_MAP.get(r[2], r[2]),
              "decisionType": r[3], "typeLabel": TYPE_MAP.get(r[3], r[3])} for r in cur.fetchall()]
@@ -140,7 +143,7 @@ def get_requirements_by_domain(cur, solution_ids: list) -> list:
     placeholders = ",".join(["%s"] * len(solution_ids))
     cur.execute(
         f"""
-        SELECT r.id, r.short_desc, r.status,
+        SELECT DISTINCT r.id, r.short_desc, r.status,
                td.id AS td_id, td.name AS td_name,
                t.id AS tech_id, t.name AS tech_name
         FROM requirements r
@@ -156,16 +159,45 @@ def get_requirements_by_domain(cur, solution_ids: list) -> list:
     )
     rows = cur.fetchall()
     groups: dict = {}
+    seen_req_ids: set = set()
     for row in rows:
+        if row[0] in seen_req_ids:
+            continue
+        seen_req_ids.add(row[0])
         domain_key = row[3] or "__none__"
         domain_name = row[4] or "Без домена"
         if domain_key not in groups:
             groups[domain_key] = {"domainId": row[3], "domainName": domain_name, "requirements": []}
-        req = {"id": row[0], "shortDesc": row[1], "status": row[2],
-               "techId": row[5], "techName": row[6]}
-        if not any(rq["id"] == req["id"] for rq in groups[domain_key]["requirements"]):
-            groups[domain_key]["requirements"].append(req)
+        groups[domain_key]["requirements"].append(
+            {"id": row[0], "shortDesc": row[1], "status": row[2],
+             "techId": row[5], "techName": row[6]}
+        )
     return list(groups.values())
+
+
+def get_req_content(cur, hid: str, rid: str) -> dict:
+    cur.execute(
+        "SELECT markdown, updated_at FROM hardening_req_content WHERE hardening_id = %s AND requirement_id = %s",
+        (hid, rid),
+    )
+    row = cur.fetchone()
+    markdown = row[0] if row else ""
+    updated_at = row[1] if row else None
+
+    cur.execute(
+        """SELECT id, filename, s3_key, content_type, size_bytes, sort_order, created_at
+           FROM hardening_req_images
+           WHERE hardening_id = %s AND requirement_id = %s
+           ORDER BY sort_order, created_at""",
+        (hid, rid),
+    )
+    images = [
+        {"id": r[0], "filename": r[1], "s3Key": r[2], "contentType": r[3],
+         "sizeBytes": r[4], "sortOrder": r[5], "createdAt": r[6],
+         "url": f"{CDN_BASE}/hardening/{r[2].split('/')[-1]}"}
+        for r in cur.fetchall()
+    ]
+    return {"markdown": markdown, "updatedAt": updated_at, "images": images}
 
 
 def row_to_dict(row, tags, cur_version, versions=None, solutions=None, requirements_by_domain=None):
@@ -192,6 +224,7 @@ def handler(event: dict, context) -> dict:
 
     method = event.get("httpMethod", "GET")
     params = event.get("queryStringParameters") or {}
+    action = params.get("action", "")
 
     # Автодополнение тегов
     if "tags_suggest" in params:
@@ -212,12 +245,23 @@ def handler(event: dict, context) -> dict:
             "SELECT id, name, status, decision_type FROM decisions WHERE decision_type = 'technical' AND (name ILIKE %s OR id ILIKE %s) ORDER BY name LIMIT 15",
             (f"%{q}%", f"%{q}%"),
         )
-        TYPE_MAP = {"technical": "Техническое", "organizational": "Организационное"}
         rows = cur.fetchall()
         conn.close()
         return ok([{"id": r[0], "name": r[1], "status": r[2],
                     "statusLabel": STATUS_MAP.get(r[2], r[2]),
                     "decisionType": r[3], "typeLabel": TYPE_MAP.get(r[3], r[3])} for r in rows])
+
+    # GET контент требования
+    if "req_content" in params and method == "GET":
+        hid = params.get("hid", "")
+        rid = params.get("rid", "")
+        if not hid or not rid:
+            return err("Нужны параметры hid и rid")
+        conn = get_conn()
+        cur = conn.cursor()
+        content = get_req_content(cur, hid, rid)
+        conn.close()
+        return ok(content)
 
     # Одна карточка
     if "id" in params and method == "GET":
@@ -277,6 +321,64 @@ def handler(event: dict, context) -> dict:
             })
         conn.close()
         return ok(result)
+
+    # Сохранить Markdown контент для требования
+    if action == "save_req_content" and method == "PUT":
+        body = parse_body(event)
+        hid = body.get("hardeningId", "")
+        rid = body.get("requirementId", "")
+        markdown = body.get("markdown", "")
+        if not hid or not rid:
+            return err("Нужны hardeningId и requirementId")
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO hardening_req_content (hardening_id, requirement_id, markdown, updated_at)
+            VALUES (%s, %s, %s, now())
+            ON CONFLICT (hardening_id, requirement_id)
+            DO UPDATE SET markdown = EXCLUDED.markdown, updated_at = now()
+            """,
+            (hid, rid, markdown),
+        )
+        conn.commit()
+        content = get_req_content(cur, hid, rid)
+        conn.close()
+        return ok(content)
+
+    # Загрузить изображение для требования
+    if action == "upload_req_image" and method == "POST":
+        body = parse_body(event)
+        hid = body.get("hardeningId", "")
+        rid = body.get("requirementId", "")
+        filename = body.get("filename", "image.png")
+        content_type = body.get("contentType", "image/png")
+        data_b64 = body.get("dataBase64", "")
+        if not hid or not rid or not data_b64:
+            return err("Нужны hardeningId, requirementId и dataBase64")
+        raw = base64.b64decode(data_b64)
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "png"
+        s3_key = f"hardening/{uuid.uuid4().hex}.{ext}"
+        s3 = s3_client()
+        s3.put_object(Bucket="files", Key=s3_key, Body=raw, ContentType=content_type)
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM hardening_req_images WHERE hardening_id = %s AND requirement_id = %s",
+            (hid, rid),
+        )
+        sort_order = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO hardening_req_images (hardening_id, requirement_id, filename, s3_key, content_type, size_bytes, sort_order) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at",
+            (hid, rid, filename, s3_key, content_type, len(raw), sort_order),
+        )
+        img_id, created_at = cur.fetchone()
+        conn.commit()
+        conn.close()
+        cdn_url = f"{CDN_BASE}/hardening/{s3_key.split('/')[-1]}"
+        return ok({"id": img_id, "filename": filename, "s3Key": s3_key,
+                   "contentType": content_type, "sizeBytes": len(raw),
+                   "sortOrder": sort_order, "createdAt": created_at, "url": cdn_url}, 201)
 
     # Создать
     if method == "POST":
