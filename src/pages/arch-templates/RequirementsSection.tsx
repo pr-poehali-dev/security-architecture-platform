@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { RequirementDomainGroup, EnvStatus, ENVS } from '@/api/archTemplates';
 
@@ -52,9 +53,9 @@ export default function RequirementsSection({ groups }: RequirementsSectionProps
               return (
                 <div key={req.id} className="px-4 py-3 flex flex-col gap-2.5">
                   {/* Заголовок требования */}
-                  <div className="flex items-start gap-3">
+                  <Link to={`/requirements/${req.id}`} className="flex items-start gap-3 group">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium leading-snug">{req.shortDesc}</div>
+                      <div className="text-sm font-medium leading-snug group-hover:text-accent transition-colors">{req.shortDesc}</div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-[10px] font-mono text-muted-foreground">{req.id}</span>
                         {req.techName && (
@@ -69,10 +70,13 @@ export default function RequirementsSection({ groups }: RequirementsSectionProps
                         )}
                       </div>
                     </div>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${REQ_STATUS_STYLE[req.status] ?? 'bg-muted text-muted-foreground'}`}>
-                      {req.status === 'active' ? 'Активно' : req.status === 'in_development' ? 'В работе' : req.status}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${REQ_STATUS_STYLE[req.status] ?? 'bg-muted text-muted-foreground'}`}>
+                        {req.status === 'active' ? 'Активно' : req.status === 'in_development' ? 'В работе' : req.status}
+                      </span>
+                      <Icon name="ExternalLink" size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </Link>
 
                   {/* Матрица применимости по средам */}
                   {hasEnvData ? (
