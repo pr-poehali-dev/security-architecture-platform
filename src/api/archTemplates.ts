@@ -24,9 +24,23 @@ export interface DecisionRef  { id: string; name: string; decisionType: string; 
 export interface MermaidDiagram { id: number; title: string; code: string; createdAt: string; updatedAt: string }
 export interface TemplateFile { id: number; filename: string; s3Key: string; contentType: string; sizeBytes: number; uploadedAt: string; url: string }
 
+export type EnvStatus = 'required' | 'not_required' | 'conditional';
+export type EnvName = 'prod' | 'prodlike' | 'stage' | 'test' | 'dev';
+export type EnvStatusMap = Record<EnvName, EnvStatus>;
+export interface EnvStatusDual { noIod: EnvStatusMap; iod: EnvStatusMap; }
+
+export const ENVS: { key: EnvName; label: string }[] = [
+  { key: 'prod',     label: 'Prod'     },
+  { key: 'prodlike', label: 'ProdLike' },
+  { key: 'stage',    label: 'Stage'    },
+  { key: 'test',     label: 'Test'     },
+  { key: 'dev',      label: 'Dev'      },
+];
+
 export interface RequirementRef {
   id: string; shortDesc: string; status: string;
   techId: string; techName: string; source: string;
+  envStatus?: EnvStatusDual;
 }
 export interface RequirementDomainGroup {
   domainId: string | null; domainName: string; requirements: RequirementRef[];

@@ -318,6 +318,31 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
             if row[0] not in all_req_rows:
                 all_req_rows[row[0]] = row
 
+    # Подгружаем env_status из харденинга для каждого требования
+    req_ids = list(all_req_rows.keys())
+    env_status_map: dict = {}  # req_id -> {"noIod": {...}, "iod": {...}}
+    if req_ids:
+        placeholders = ",".join(["%s"] * len(req_ids))
+        cur.execute(
+            f"""
+            SELECT requirement_id, env, status, iod
+            FROM {SCHEMA}.hardening_req_env_status
+            WHERE requirement_id IN ({placeholders})
+            """,
+            req_ids,
+        )
+        ENVS_LIST = ["prod", "prodlike", "stage", "test", "dev"]
+        for row in cur.fetchall():
+            rid, env, status, iod = row[0], row[1], row[2], row[3]
+            if rid not in env_status_map:
+                env_status_map[rid] = {
+                    "noIod": {e: "not_required" for e in ENVS_LIST},
+                    "iod":   {e: "not_required" for e in ENVS_LIST},
+                }
+            key = "iod" if iod else "noIod"
+            if env in ENVS_LIST:
+                env_status_map[rid][key][env] = status
+
     # Группировка по домену
     groups: dict = {}
     for row in all_req_rows.values():
@@ -325,8 +350,14 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
         domain_name = row[4] or "Без домена"
         if domain_key not in groups:
             groups[domain_key] = {"domainId": row[3], "domainName": domain_name, "requirements": []}
+        ENVS_LIST = ["prod", "prodlike", "stage", "test", "dev"]
+        default_dual = {
+            "noIod": {e: "not_required" for e in ENVS_LIST},
+            "iod":   {e: "not_required" for e in ENVS_LIST},
+        }
         req = {"id": row[0], "shortDesc": row[1], "status": row[2],
-               "techId": row[5] or "", "techName": row[6] or "", "source": row[7]}
+               "techId": row[5] or "", "techName": row[6] or "", "source": row[7],
+               "envStatus": env_status_map.get(row[0], default_dual)}
         groups[domain_key]["requirements"].append(req)
 
     return list(groups.values())
