@@ -2,20 +2,21 @@ import { useState } from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import SectionContent from '@/components/SectionContent';
+import { useNavCounts } from '@/hooks/useNavCounts';
 
 type NavItem = { id: string; label: string; icon: string; group: string; count?: number };
 
 export const NAV: NavItem[] = [
-  { id: 'library',       label: 'Пользовательская библиотека',   icon: 'Library',      group: 'Основное',    count: 128 },
-  { id: 'org-domain',    label: 'Организационный домен',          icon: 'Building2',    group: 'Домены',       count: 34  },
-  { id: 'tech-domain',   label: 'Технический домен',              icon: 'Server',       group: 'Домены',       count: 41  },
-  { id: 'technologies',  label: 'Технологии',                     icon: 'Cpu',          group: 'Домены',       count: 76  },
-  { id: 'requirements',  label: 'Требования',                     icon: 'ListChecks',   group: 'Управление',   count: 312 },
-  { id: 'solutions',     label: 'Орг. и технические решения',     icon: 'Workflow',     group: 'Управление'              },
-  { id: 'hardening',     label: 'Харденинг и конфигурации',       icon: 'ShieldCheck',  group: 'Управление',   count: 94  },
-  { id: 'architectures', label: 'Архитектуры',                    icon: 'Network',      group: 'Конструктор',  count: 22  },
-  { id: 'templates',     label: 'Шаблоны архитектур',             icon: 'Boxes',        group: 'Конструктор',  count: 12  },
-  { id: 'settings',      label: 'Настройки',                      icon: 'Settings',     group: 'Система'               },
+  { id: 'library',       label: 'Пользовательская библиотека',   icon: 'Library',      group: 'Основное'    },
+  { id: 'org-domain',    label: 'Организационный домен',          icon: 'Building2',    group: 'Домены'      },
+  { id: 'tech-domain',   label: 'Технический домен',              icon: 'Server',       group: 'Домены'      },
+  { id: 'technologies',  label: 'Технологии',                     icon: 'Cpu',          group: 'Домены'      },
+  { id: 'requirements',  label: 'Требования',                     icon: 'ListChecks',   group: 'Управление'  },
+  { id: 'solutions',     label: 'Орг. и технические решения',     icon: 'Workflow',     group: 'Управление'  },
+  { id: 'hardening',     label: 'Харденинг и конфигурации',       icon: 'ShieldCheck',  group: 'Управление'  },
+  { id: 'architectures', label: 'Архитектуры',                    icon: 'Network',      group: 'Конструктор' },
+  { id: 'templates',     label: 'Шаблоны архитектур',             icon: 'Boxes',        group: 'Конструктор' },
+  { id: 'settings',      label: 'Настройки',                      icon: 'Settings',     group: 'Система'     },
 ];
 
 const GROUPS = ['Основное', 'Домены', 'Управление', 'Конструктор', 'Система'];
@@ -30,6 +31,7 @@ const Layout = ({ section: sectionProp, children }: LayoutProps = {}) => {
   const params = useParams<{ section: string }>();
   const section = sectionProp ?? params.section ?? 'library';
   const [menuOpen, setMenuOpen] = useState(true);
+  const navCounts = useNavCounts();
 
   if (!VALID_SECTIONS.includes(section)) {
     return <Navigate to="/library" replace />;
@@ -102,8 +104,8 @@ const Layout = ({ section: sectionProp, children }: LayoutProps = {}) => {
                           className={isActive ? 'text-sidebar-primary shrink-0' : 'text-sidebar-foreground/60 shrink-0'}
                         />
                         <span className="flex-1 truncate">{item.label}</span>
-                        {item.count != null && (
-                          <span className="text-[11px] font-mono text-sidebar-foreground/50">{item.count}</span>
+                        {navCounts[item.id] != null && (
+                          <span className="text-[11px] font-mono text-sidebar-foreground/50">{navCounts[item.id]}</span>
                         )}
                       </Link>
                     );
