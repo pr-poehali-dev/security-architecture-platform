@@ -258,6 +258,7 @@ export default function MermaidPreview({ code, title, className = '', compact, s
             {THEMES.map((t) => (
               <button
                 key={t.value}
+                type="button"
                 onClick={() => setTheme(t.value)}
                 className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
                   theme === t.value
