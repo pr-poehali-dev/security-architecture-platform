@@ -40,6 +40,7 @@ export const ENVS: { key: EnvName; label: string }[] = [
 export interface RequirementRef {
   id: string; shortDesc: string; status: string;
   techId: string; techName: string; source: string;
+  hardeningId?: string | null;
   envStatus?: EnvStatusDual;
 }
 export interface RequirementDomainGroup {
