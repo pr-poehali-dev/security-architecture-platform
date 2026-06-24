@@ -297,11 +297,10 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
         placeholders = ",".join(["%s"] * len(decision_ids))
         cur.execute(
             f"""
-            SELECT r.id, r.short_desc, r.status,
+            SELECT DISTINCT r.id, r.short_desc, r.status,
                    td.id AS td_id, td.name AS td_name,
                    t.id AS tech_id, t.name AS tech_name,
-                   'hardening' AS source,
-                   h.id AS hardening_id
+                   'hardening' AS source
             FROM {SCHEMA}.hardening_solutions hs
             JOIN {SCHEMA}.hardenings h ON h.id = hs.hardening_id
             JOIN {SCHEMA}.hardening_req_content hrc ON hrc.hardening_id = h.id
@@ -358,7 +357,6 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
         }
         req = {"id": row[0], "shortDesc": row[1], "status": row[2],
                "techId": row[5] or "", "techName": row[6] or "", "source": row[7],
-               "hardeningId": row[8] if len(row) > 8 else None,
                "envStatus": env_status_map.get(row[0], default_dual)}
         groups[domain_key]["requirements"].append(req)
 

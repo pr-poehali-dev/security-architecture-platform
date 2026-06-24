@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { RequirementDomainGroup, EnvStatus, ENVS } from '@/api/archTemplates';
 import { fetchRequirement, RequirementDetail } from '@/api/requirements';
-import { fetchReqContent, ReqContent } from '@/api/hardening';
-import MarkdownViewer from '@/components/technologies/MarkdownViewer';
 
 const REQ_STATUS_STYLE: Record<string, string> = {
   active:         'bg-emerald-500/15 text-emerald-400',
@@ -33,14 +31,10 @@ const IOD_ROWS: { key: 'noIod' | 'iod'; label: string }[] = [
 
 // Кеш деталей требований в памяти
 const detailCache = new Map<string, RequirementDetail>();
-const hardeningContentCache = new Map<string, ReqContent>();
 
-function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: string | null }) {
+function ReqDetailPanel({ reqId }: { reqId: string }) {
   const [detail, setDetail] = useState<RequirementDetail | null>(detailCache.get(reqId) ?? null);
   const [loading, setLoading] = useState(!detailCache.has(reqId));
-  const cacheKey = hardeningId ? `${hardeningId}__${reqId}` : null;
-  const [hContent, setHContent] = useState<ReqContent | null>(cacheKey ? (hardeningContentCache.get(cacheKey) ?? null) : null);
-  const [hLoading, setHLoading] = useState(!!cacheKey && !hardeningContentCache.has(cacheKey));
 
   useEffect(() => {
     if (detailCache.has(reqId)) return;
@@ -50,15 +44,6 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [reqId]);
-
-  useEffect(() => {
-    if (!cacheKey || !hardeningId || hardeningContentCache.has(cacheKey)) return;
-    fetchReqContent(hardeningId, reqId).then((c) => {
-      hardeningContentCache.set(cacheKey, c);
-      setHContent(c);
-      setHLoading(false);
-    }).catch(() => setHLoading(false));
-  }, [cacheKey, hardeningId, reqId]);
 
   if (loading) return (
     <div className="flex items-center gap-2 py-3 text-muted-foreground text-xs">
@@ -115,29 +100,6 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
       {/* Описание */}
       {detail.description && (
         <p className="text-xs text-muted-foreground leading-relaxed">{detail.description}</p>
-      )}
-
-      {/* Требование харденинга */}
-      {hardeningId && (
-        <div className="rounded-md border border-orange-500/20 bg-orange-500/5 overflow-hidden">
-          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-orange-500/20 bg-orange-500/10">
-            <Icon name="ShieldCheck" size={12} className="text-orange-400" />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Требование харденинга</span>
-          </div>
-          <div className="px-3 py-2.5">
-            {hLoading ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Icon name="Loader2" size={12} className="animate-spin" /> Загрузка…
-              </div>
-            ) : hContent?.markdown ? (
-              <div className="text-xs">
-                <MarkdownViewer content={hContent.markdown} />
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 italic">Текст требования не заполнен</p>
-            )}
-          </div>
-        </div>
       )}
 
       {/* Доп. поля */}
@@ -303,7 +265,7 @@ export default function RequirementsSection({ groups }: RequirementsSectionProps
                   )}
 
                   {/* Раскрывающаяся панель с полными свойствами */}
-                  {isOpen && <ReqDetailPanel reqId={req.id} hardeningId={req.hardeningId} />}
+                  {isOpen && <ReqDetailPanel reqId={req.id} />}
                 </div>
               );
             })}
