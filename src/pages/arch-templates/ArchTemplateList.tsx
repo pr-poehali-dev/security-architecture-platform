@@ -97,7 +97,8 @@ export default function ArchTemplateList() {
         </div>
       </div>
 
-      <div className="px-6 py-4 max-w-[1400px] mx-auto flex flex-wrap gap-3 items-center border-b border-border">
+      <div className="px-6 py-3 max-w-[1400px] mx-auto flex flex-wrap gap-3 items-center border-b border-border">
+        {/* Поиск */}
         <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-background text-sm text-muted-foreground flex-1 min-w-[200px] max-w-xs">
           <Icon name="Search" size={16} />
           <input
@@ -112,6 +113,8 @@ export default function ArchTemplateList() {
             </button>
           )}
         </div>
+
+        {/* Фильтры */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -128,7 +131,35 @@ export default function ArchTemplateList() {
           <option value="">Все типы</option>
           {TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        <span className="text-xs font-mono text-muted-foreground ml-auto">{filtered.length} из {items.length}</span>
+
+        {/* Сортировка */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <span className="text-[11px] text-muted-foreground uppercase tracking-widest">Сортировка:</span>
+          <div className="flex items-center rounded-md border border-border bg-background overflow-hidden text-xs">
+            {([
+              ['name',         'Название' ],
+              ['templateType', 'Тип'      ],
+              ['owner',        'Владелец' ],
+              ['status',       'Статус'   ],
+              ['version',      'Версия'   ],
+            ] as const).map(([col, label]) => {
+              const active = sortCol === col;
+              return (
+                <button
+                  key={col}
+                  type="button"
+                  onClick={() => handleSort(col)}
+                  className={`flex items-center gap-1 px-2.5 h-8 border-r last:border-r-0 border-border transition-colors ${active ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'}`}
+                >
+                  {label}
+                  {active && <Icon name={sortDir === 'asc' ? 'ArrowUp' : 'ArrowDown'} size={11} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <span className="text-xs font-mono text-muted-foreground">{filtered.length} из {items.length}</span>
       </div>
 
       <div className="px-6 py-6 max-w-[1400px] mx-auto">
