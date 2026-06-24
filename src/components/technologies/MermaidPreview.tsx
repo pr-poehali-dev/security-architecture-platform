@@ -223,9 +223,10 @@ export default function MermaidPreview({ code, title, className = '', compact, s
       // это единственный стабильный способ смены темы в mermaid v11
       // без повторного initialize (который сбрасывает реестр диаграмм)
       const themeDirective = `%%{init: {'theme': '${currentTheme}'}}%%\n`;
-      const codeWithTheme = currentCode.trimStart().startsWith('%%')
-        ? currentCode.replace(/^%%\{init:.*?\}%%\s*/s, themeDirective)
-        : themeDirective + currentCode;
+      const trimmed = currentCode.trimStart();
+      const codeWithTheme = trimmed.startsWith('%%')
+        ? trimmed.replace(/^%%\{init:.*?\}%%\s*/s, themeDirective)
+        : themeDirective + trimmed;
 
       const id = `${idRef.current}-${renderIdx}`;
       const { svg: rendered } = await mermaid.render(id, codeWithTheme);

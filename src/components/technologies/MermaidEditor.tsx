@@ -13,84 +13,18 @@ interface Props {
 }
 
 const SNIPPETS: { label: string; code: string }[] = [
-  { label: 'Flowchart', code: `flowchart TD
-    A[Начало] --> B{Условие}
-    B -->|Да| C[Действие]
-    B -->|Нет| D[Конец]` },
-  { label: 'Sequence', code: `sequenceDiagram
-    participant A as Клиент
-    participant B as Сервер
-    A->>B: Запрос
-    B-->>A: Ответ` },
-  { label: 'Class', code: `classDiagram
-    class Animal {
-        +String name
-        +makeSound()
-    }
-    class Dog {
-        +fetch()
-    }
-    Animal <|-- Dog` },
-  { label: 'State', code: `stateDiagram-v2
-    [*] --> Idle
-    Idle --> Running : start
-    Running --> Idle : stop
-    Running --> [*] : finish` },
-  { label: 'ER', code: `erDiagram
-    USER ||--o{ ORDER : places
-    ORDER ||--|{ ITEM : contains
-    USER {
-        int id
-        string name
-    }` },
-  { label: 'Gantt', code: `gantt
-    title График проекта
-    dateFormat YYYY-MM-DD
-    section Фаза 1
-    Задача 1 :a1, 2024-01-01, 30d
-    Задача 2 :after a1, 20d` },
-  { label: 'Pie', code: `pie title Распределение
-    "Frontend" : 40
-    "Backend"  : 35
-    "DevOps"   : 25` },
-  { label: 'GitGraph', code: `gitGraph
-    commit
-    branch feature
-    checkout feature
-    commit
-    commit
-    checkout main
-    merge feature` },
-  { label: 'Mindmap', code: `mindmap
-  root((Проект))
-    Фронтенд
-      React
-      TypeScript
-    Бэкенд
-      Python
-      PostgreSQL` },
-  { label: 'Timeline', code: `timeline
-    title История версий
-    2022 : Запуск v1.0
-    2023 : Релиз v2.0
-         : Новый UI
-    2024 : v3.0 — Текущая` },
-  { label: 'XY Chart', code: `xychart-beta
-    title "Продажи по месяцам"
-    x-axis [Янв, Фев, Мар, Апр]
-    y-axis "Сумма (тыс)" 0 --> 100
-    bar  [50, 70, 60, 90]
-    line [50, 70, 60, 90]` },
-  { label: 'Quadrant', code: `quadrantChart
-    title Приоритизация задач
-    x-axis Низкий приоритет --> Высокий приоритет
-    y-axis Низкая сложность --> Высокая сложность
-    quadrant-1 Делать сейчас
-    quadrant-2 Планировать
-    quadrant-3 Делегировать
-    quadrant-4 Пересмотреть
-    Задача А: [0.7, 0.3]
-    Задача Б: [0.3, 0.7]` },
+  { label: 'Flowchart', code: `flowchart TD\n  A[Начало] --> B{Условие}\n  B -->|Да| C[Действие]\n  B -->|Нет| D[Конец]` },
+  { label: 'Sequence', code: `sequenceDiagram\n  participant A as Клиент\n  participant B as Сервер\n  A->>B: Запрос\n  B-->>A: Ответ` },
+  { label: 'Class', code: `classDiagram\n  class Animal {\n    +String name\n    +makeSound()\n  }\n  class Dog {\n    +fetch()\n  }\n  Animal <|-- Dog` },
+  { label: 'State', code: `stateDiagram-v2\n  [*] --> Idle\n  Idle --> Running : start\n  Running --> Idle : stop\n  Running --> [*] : finish` },
+  { label: 'ER', code: `erDiagram\n  USER ||--o{ ORDER : places\n  ORDER ||--|{ ITEM : contains\n  USER {\n    int id\n    string name\n  }` },
+  { label: 'Gantt', code: `gantt\n  title График проекта\n  dateFormat YYYY-MM-DD\n  section Фаза 1\n  Задача 1 :a1, 2024-01-01, 30d\n  Задача 2 :after a1, 20d` },
+  { label: 'Pie', code: `pie title Распределение\n  "Frontend" : 40\n  "Backend" : 35\n  "DevOps" : 25` },
+  { label: 'GitGraph', code: `gitGraph\n  commit\n  branch feature\n  checkout feature\n  commit\n  commit\n  checkout main\n  merge feature` },
+  { label: 'Mindmap', code: `mindmap\nroot((Проект))\n  Фронтенд\n    React\n    TypeScript\n  Бэкенд\n    Python\n    PostgreSQL` },
+  { label: 'Timeline', code: `timeline\n  title История версий\n  2022 : Запуск v1.0\n  2023 : Релиз v2.0\n       : Новый UI\n  2024 : v3.0 Текущая` },
+  { label: 'XY Chart', code: `xychart-beta\n  title "Продажи по месяцам"\n  x-axis [Янв, Фев, Мар, Апр]\n  y-axis "Сумма" 0 --> 100\n  bar [50, 70, 60, 90]\n  line [50, 70, 60, 90]` },
+  { label: 'Quadrant', code: `quadrantChart\n  title Приоритизация задач\n  x-axis Низкий --> Высокий приоритет\n  y-axis Низкая --> Высокая сложность\n  quadrant-1 Делать сейчас\n  quadrant-2 Планировать\n  quadrant-3 Делегировать\n  quadrant-4 Пересмотреть\n  Задача А: [0.7, 0.3]\n  Задача Б: [0.3, 0.7]` },
 ];
 
 const PLACEHOLDER = SNIPPETS[0].code;
