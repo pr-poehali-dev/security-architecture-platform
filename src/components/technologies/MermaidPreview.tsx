@@ -94,7 +94,7 @@ function MermaidInner({ svg, onFullscreen, compact }: InnerProps) {
       maxScale={8}
       limitToBounds={false}
       doubleClick={{ mode: 'reset' }}
-      wheel={{ step: 0.08 }}
+      wheel={{ step: 0.02 }}
       panning={{ velocityDisabled: false }}
     >
       <div className={`relative overflow-hidden rounded-md bg-transparent ${compact ? 'min-h-[120px]' : 'min-h-[220px]'}`}>
@@ -179,7 +179,7 @@ function FullscreenModal({ svg, title, theme, onThemeChange, onClose }: ModalPro
           maxScale={12}
           limitToBounds={false}
           doubleClick={{ mode: 'reset' }}
-          wheel={{ step: 0.06 }}
+          wheel={{ step: 0.02 }}
           centerOnInit
         >
           <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
