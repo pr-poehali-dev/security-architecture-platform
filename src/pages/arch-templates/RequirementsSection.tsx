@@ -114,26 +114,25 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
         )}
       </div>
 
-      {/* Описание */}
-      {detail.description && (
-        <p className="text-xs text-muted-foreground leading-relaxed">{detail.description}</p>
-      )}
-
-      {/* Блок харденинга */}
-      {hardeningId && (
-        <div className="rounded-md border border-orange-500/25 overflow-hidden">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border-b border-orange-500/20">
-            <Icon name="ShieldCheck" size={11} className="text-orange-400" />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Требование харденинга</span>
-            {hLoading && <Icon name="Loader2" size={10} className="animate-spin text-orange-400/60 ml-auto" />}
-          </div>
-          <div className="px-3 py-2.5 text-xs">
-            {hLoading ? null : hContent?.markdown ? (
-              <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
-            ) : (
-              <span className="text-muted-foreground/50 italic">Текст не заполнен</span>
-            )}
-          </div>
+      {/* Описание + харденинг */}
+      {(detail.description || hardeningId) && (
+        <div className="flex flex-col gap-2">
+          {detail.description && (
+            <p className="text-xs text-muted-foreground leading-relaxed">{detail.description}</p>
+          )}
+          {hardeningId && (
+            <div className="flex flex-col gap-1 pl-3 border-l-2 border-orange-500/40">
+              <div className="flex items-center gap-1">
+                <Icon name="ShieldCheck" size={10} className="text-orange-400" />
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Харденинг</span>
+                {hLoading && <Icon name="Loader2" size={9} className="animate-spin text-orange-400/50 ml-1" />}
+              </div>
+              {!hLoading && (hContent?.markdown
+                ? <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
+                : <span className="text-[11px] text-muted-foreground/50 italic">Текст не заполнен</span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
