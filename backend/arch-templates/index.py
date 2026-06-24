@@ -319,8 +319,24 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
             if row[0] not in all_req_rows:
                 all_req_rows[row[0]] = row
 
-    # Подгружаем env_status из харденинга для каждого требования
+    # Подтягиваем hardeningId для всех требований (не только source=hardening)
     req_ids = list(all_req_rows.keys())
+    hardening_id_map: dict = {}  # req_id -> hardening_id
+    if req_ids:
+        placeholders = ",".join(["%s"] * len(req_ids))
+        cur.execute(
+            f"""
+            SELECT DISTINCT ON (requirement_id) requirement_id, hardening_id
+            FROM {SCHEMA}.hardening_req_content
+            WHERE requirement_id IN ({placeholders})
+            ORDER BY requirement_id, hardening_id
+            """,
+            req_ids,
+        )
+        for row in cur.fetchall():
+            hardening_id_map[row[0]] = row[1]
+
+    # Подгружаем env_status из харденинга для каждого требования
     env_status_map: dict = {}  # req_id -> {"noIod": {...}, "iod": {...}}
     if req_ids:
         placeholders = ",".join(["%s"] * len(req_ids))
@@ -358,7 +374,7 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
         }
         req = {"id": row[0], "shortDesc": row[1], "status": row[2],
                "techId": row[5] or "", "techName": row[6] or "", "source": row[7],
-               "hardeningId": row[8] if len(row) > 8 else None,
+               "hardeningId": hardening_id_map.get(row[0]) or (row[8] if len(row) > 8 else None),
                "envStatus": env_status_map.get(row[0], default_dual)}
         groups[domain_key]["requirements"].append(req)
 
