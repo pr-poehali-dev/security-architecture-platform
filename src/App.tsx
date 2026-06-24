@@ -19,6 +19,9 @@ import RequirementForm from "./pages/requirements/RequirementForm";
 import DecisionList from "./pages/decisions/DecisionList";
 import DecisionView from "./pages/decisions/DecisionView";
 import DecisionForm from "./pages/decisions/DecisionForm";
+import HardeningList from "./pages/hardening/HardeningList";
+import HardeningView from "./pages/hardening/HardeningView";
+import HardeningForm from "./pages/hardening/HardeningForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +64,12 @@ const App = () => (
           <Route path="/solutions/new" element={<Layout section="solutions"><DecisionForm /></Layout>} />
           <Route path="/solutions/:id" element={<Layout section="solutions"><DecisionView /></Layout>} />
           <Route path="/solutions/:id/edit" element={<Layout section="solutions"><DecisionForm /></Layout>} />
+
+          {/* Харденинг и конфигурации */}
+          <Route path="/hardening" element={<Layout section="hardening"><HardeningList /></Layout>} />
+          <Route path="/hardening/new" element={<Layout section="hardening"><HardeningForm /></Layout>} />
+          <Route path="/hardening/:id" element={<Layout section="hardening"><HardeningView /></Layout>} />
+          <Route path="/hardening/:id/edit" element={<Layout section="hardening"><HardeningForm /></Layout>} />
 
           {/* Остальные разделы */}
           <Route path="/:section" element={<Layout />} />

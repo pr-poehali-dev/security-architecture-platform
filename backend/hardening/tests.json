@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "GET список харденингов",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET автодополнение тегов",
+      "method": "GET",
+      "path": "/?tags_suggest=",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET автодополнение решений",
+      "method": "GET",
+      "path": "/?solutions_suggest=",
+      "expectedStatus": 200
+    }
+  ]
+}
