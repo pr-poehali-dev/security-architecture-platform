@@ -14,6 +14,7 @@
 - [Запуск в Docker](#запуск-в-docker)
 - [Переменные окружения](#переменные-окружения)
 - [Backend API](#backend-api)
+- [Диаграммы потоков данных](#диаграммы-потоков-данных)
 
 ---
 
@@ -693,3 +694,182 @@ docker build -t security-arch-portal .
 | Создание | Версия `1.0` |
 | Обновление | `major.(minor+1)`, например `1.0 → 1.1 → 1.2` |
 | Хранение | Snapshot всех полей + опциональный `change_note` |
+
+---
+
+## Диаграммы потоков данных
+
+### 1. Открытие списка (чтение)
+
+```mermaid
+sequenceDiagram
+    actor User as Пользователь
+    participant SPA as React SPA
+    participant FN as Cloud Function
+    participant DB as PostgreSQL
+
+    User->>SPA: Открывает раздел (напр. /templates)
+    SPA->>SPA: Читает URL из func2url.json
+    SPA->>FN: GET /arch-templates
+    FN->>DB: SELECT arch_templates + tags + version
+    DB-->>FN: Список записей
+    FN-->>SPA: { statusCode: 200, body: [...] }
+    SPA->>User: Рендерит таблицу с сортировкой и фильтрами
+```
+
+---
+
+### 2. Создание новой записи
+
+```mermaid
+sequenceDiagram
+    actor User as Пользователь
+    participant SPA as React SPA
+    participant Cache as useFormCache
+    participant FN as Cloud Function
+    participant DB as PostgreSQL
+
+    User->>SPA: Заполняет форму
+    SPA->>Cache: Автосохранение черновика (localStorage)
+    User->>SPA: Нажимает «Сохранить»
+    SPA->>FN: POST / { name, owner, status, tags, ... }
+    FN->>DB: INSERT INTO arch_templates
+    FN->>DB: INSERT INTO arch_template_versions (v1.0)
+    FN->>DB: INSERT INTO arch_template_tags (теги)
+    DB-->>FN: Новый id
+    FN-->>SPA: { id: "arch-8", version: "1.0" }
+    SPA->>Cache: Очищает черновик
+    SPA->>User: Редирект на карточку /templates/arch-8
+```
+
+---
+
+### 3. Обновление записи с версионированием
+
+```mermaid
+sequenceDiagram
+    actor User as Пользователь
+    participant SPA as React SPA
+    participant FN as Cloud Function
+    participant DB as PostgreSQL
+
+    User->>SPA: Редактирует поля, вводит примечание к версии
+    User->>SPA: Нажимает «Сохранить»
+    SPA->>FN: PUT / { id, name, changeNote, ... }
+    FN->>DB: SELECT current version (напр. "1.3")
+    FN->>DB: UPDATE arch_templates SET ...
+    FN->>DB: INSERT INTO arch_template_versions (v1.4, snapshot)
+    FN->>DB: DELETE + INSERT arch_template_tags (синхронизация)
+    DB-->>FN: OK
+    FN-->>SPA: { version: "1.4" }
+    SPA->>User: Показывает уведомление «Сохранено»
+```
+
+---
+
+### 4. Загрузка файла в S3
+
+```mermaid
+sequenceDiagram
+    actor User as Пользователь
+    participant SPA as React SPA
+    participant FN as Cloud Function
+    participant S3 as S3 Storage
+    participant DB as PostgreSQL
+
+    User->>SPA: Выбирает файл через FileAttachments
+    SPA->>SPA: FileReader → base64
+    SPA->>FN: POST /?action=upload_file { filename, base64, contentType }
+    FN->>FN: base64 → bytes
+    FN->>S3: put_object(Bucket="files", Key="tech-5/doc.pdf")
+    S3-->>FN: OK
+    FN->>DB: INSERT INTO technology_files (s3_key, size_bytes, ...)
+    DB-->>FN: file_id
+    FN-->>SPA: { url: "https://cdn.poehali.dev/.../doc.pdf" }
+    SPA->>User: Показывает ссылку на файл
+```
+
+---
+
+### 5. Поиск и фильтрация (клиентская сторона)
+
+```mermaid
+sequenceDiagram
+    actor User as Пользователь
+    participant SPA as React SPA
+
+    Note over SPA: Все данные уже загружены в useState
+    User->>SPA: Вводит текст в поиск
+    SPA->>SPA: filter() по name, id, owner, tags
+    SPA->>User: Мгновенно обновляет таблицу
+
+    User->>SPA: Выбирает статус / тип в фильтре
+    SPA->>SPA: filter() по status / templateType
+    SPA->>User: Обновляет таблицу
+
+    User->>SPA: Кликает на заголовок колонки (сортировка)
+    SPA->>SPA: sort() по выбранной колонке + направление
+    SPA->>User: Перерисовывает отсортированный список
+```
+
+---
+
+### 6. Автодополнение тегов
+
+```mermaid
+sequenceDiagram
+    actor User as Пользователь
+    participant SPA as TagInput
+    participant FN as Cloud Function (technologies)
+    participant DB as PostgreSQL
+
+    User->>SPA: Вводит символ в поле тегов
+    SPA->>SPA: debounce 300ms
+    SPA->>FN: GET /?tags_suggest=<query>
+    FN->>DB: SELECT name FROM tags WHERE name ILIKE '%query%'
+    DB-->>FN: Список совпадений
+    FN-->>SPA: ["kubernetes", "k8s", "kafka"]
+    SPA->>User: Показывает выпадающий список
+    User->>SPA: Выбирает тег
+    SPA->>SPA: Добавляет в список, создаёт тег если новый
+```
+
+---
+
+### 7. Иерархия связей между сущностями
+
+```mermaid
+flowchart TD
+    OD[Org Domain\nОрг. домен]
+    TD[Tech Domain\nТех. домен]
+    T[Technology\nТехнология]
+    R[Requirement\nТребование]
+    D[Decision\nРешение / ТОС]
+    H[Hardening\nХарденинг]
+    AT[Arch Template\nШаблон]
+    TAG[Tags\nТеги]
+
+    OD -->|1:M| TD
+    TD -->|M:M| R
+    T -->|M:M| R
+    T -->|M:M| D
+    T -->|M:M| AT
+    R -->|используется в| AT
+    D -->|M:M self| D
+    D -->|M:M| H
+    D -->|M:M| AT
+    H -->|M:M| TAG
+    T -->|M:M| TAG
+    R -->|M:M| TAG
+    D -->|M:M| TAG
+    AT -->|M:M| TAG
+
+    style OD fill:#3b5bdb,color:#fff
+    style TD fill:#1971c2,color:#fff
+    style T fill:#0c8599,color:#fff
+    style R fill:#2f9e44,color:#fff
+    style D fill:#e67700,color:#fff
+    style H fill:#c2255c,color:#fff
+    style AT fill:#6741d9,color:#fff
+    style TAG fill:#495057,color:#fff
+```
