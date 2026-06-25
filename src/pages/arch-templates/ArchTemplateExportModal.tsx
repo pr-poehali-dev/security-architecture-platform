@@ -268,7 +268,18 @@ function ExportReqCard({
 
 // ── MD-генератор ─────────────────────────────────────────────────────────────
 
-function buildMarkdown(data: ExportData, excluded: Set<string>): string {
+const ENV_STATUS_LABEL: Record<string, string> = {
+  required: '✅ Обязательно', conditional: '⚠️ Условие', not_required: '— Не требуется',
+};
+const ENV_COLS = ['Prod', 'ProdLike', 'Stage', 'Test', 'Dev'];
+const ENV_KEYS = ['prod', 'prodlike', 'stage', 'test', 'dev'];
+
+function buildMarkdown(
+  data: ExportData,
+  excluded: Set<string>,
+  dCache: Map<string, import('@/api/requirements').RequirementDetail>,
+  hCache: Map<string, import('@/api/hardening').ReqContent>,
+): string {
   const has = (key: string) => !excluded.has(key);
   const lines: string[] = [];
   // Защита от undefined-полей (данные могут прийти частично)
@@ -358,15 +369,59 @@ function buildMarkdown(data: ExportData, excluded: Set<string>): string {
         lines.push(`### ${g.domainName}`);
         lines.push('');
         g.requirements.forEach((r: ExportRequirement) => {
+          const detail = dCache.get(r.id);
+          const hKey = r.hardeningId ? `${r.hardeningId}::${r.id}` : null;
+          const hContent = hKey ? hCache.get(hKey) : null;
+          const envStatus = hContent?.envStatus ?? r.envStatus;
+
           lines.push(`#### ${r.shortDesc} \`${r.id}\``);
-          if (r.reqTypeLabel) lines.push(`**Тип:** ${r.reqTypeLabel}  `);
-          if (r.scorePoint)   lines.push(`**Балл:** ${r.scorePoint} / **Вес:** ${r.scoreWeight}  `);
-          if (r.owner)        lines.push(`**Владелец:** ${r.owner}  `);
-          if (r.description)  { lines.push(''); lines.push(r.description); }
-          if (r.normativeDoc)       { lines.push(''); lines.push(`> **Нормативная документация:** ${r.normativeDoc}`); }
-          if (r.controlMetrics)     { lines.push(`> **Метрики контроля:** ${r.controlMetrics}`); }
-          if (r.fulfillmentMethod)  { lines.push(`> **Способ исполнения:** ${r.fulfillmentMethod}`); }
           lines.push('');
+
+          // Мета-строка
+          const meta: string[] = [];
+          if (detail?.reqTypeLabel) meta.push(`**Тип:** ${detail.reqTypeLabel}`);
+          if (detail?.isProcurement) meta.push('**Закупки**');
+          if (r.source === 'hardening') meta.push('**Харденинг**');
+          if (detail?.techDomain) meta.push(`**Домен:** ${detail.techDomain.name}`);
+          if (detail?.owner) meta.push(`**Владелец:** ${detail.owner}`);
+          if (detail?.scorePoint != null) meta.push(`**Балл:** ${detail.scorePoint}`);
+          if (detail?.scoreWeight != null) meta.push(`**Вес:** ${detail.scoreWeight}`);
+          if (meta.length) { lines.push(meta.join(' · ')); lines.push(''); }
+
+          // Теги и технологии
+          const badges: string[] = [];
+          if (detail?.tags?.length) badges.push(...detail.tags.map(t => `\`#${t.name}\``));
+          if (detail?.technologies?.length) badges.push(...detail.technologies.map(t => `\`${t.name}\``));
+          if (badges.length) { lines.push(badges.join(' ')); lines.push(''); }
+
+          // Таблица сред
+          if (envStatus) {
+            lines.push(`| | ${ENV_COLS.join(' | ')} |`);
+            lines.push(`|---|${'---|'.repeat(ENV_COLS.length)}`);
+            const iodRows = [{ key: 'noIod', label: 'Без ИОД' }, { key: 'iod', label: 'С ИОД' }] as const;
+            iodRows.forEach(row => {
+              const cells = ENV_KEYS.map(k => ENV_STATUS_LABEL[envStatus[row.key][k as keyof typeof envStatus.noIod]] ?? '—');
+              lines.push(`| **${row.label}** | ${cells.join(' | ')} |`);
+            });
+            lines.push('');
+          }
+
+          // Описание
+          if (detail?.description) { lines.push(detail.description); lines.push(''); }
+
+          // Нормативка / метрики / способ
+          if (detail?.normativeDoc) { lines.push(`> **Нормативная документация:** ${detail.normativeDoc}`); }
+          if (detail?.controlMetrics) { lines.push(`> **Метрики контроля:** ${detail.controlMetrics}`); }
+          if (detail?.fulfillmentMethod) { lines.push(`> **Способ исполнения:** ${detail.fulfillmentMethod}`); }
+          if (detail?.normativeDoc || detail?.controlMetrics || detail?.fulfillmentMethod) lines.push('');
+
+          // Харденинг
+          if (r.hardeningId && hContent?.markdown) {
+            lines.push('**Харденинг:**');
+            lines.push('');
+            lines.push(hContent.markdown);
+            lines.push('');
+          }
         });
       });
     }
@@ -488,6 +543,8 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Счётчик для ре-рендера после загрузки деталей в ExportReqCard
+  const [cacheRev, setCacheRev] = useState(0);
 
   useEffect(() => {
     fetchArchTemplateExport(templateId)
@@ -495,6 +552,19 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [templateId]);
+
+  // Подписываемся на изменения кешей через интервал (пока карточки грузятся)
+  useEffect(() => {
+    if (!data) return;
+    const allReqIds = (data.requirementsByDomain ?? []).flatMap(g => g.requirements.map(r => r.id));
+    if (allReqIds.length === 0) return;
+    const interval = setInterval(() => {
+      const loaded = allReqIds.filter(id => detailCache.has(id)).length;
+      if (loaded === allReqIds.length) clearInterval(interval);
+      setCacheRev(v => v + 1);
+    }, 300);
+    return () => clearInterval(interval);
+  }, [data]);
 
   const toggle = useCallback((key: string) => {
     setExcluded(prev => {
@@ -504,7 +574,10 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
     });
   }, []);
 
-  const md = data ? buildMarkdown(data, excluded) : '';
+  // md пересчитывается при каждом ре-рендере (cacheRev тригерит его при загрузке деталей)
+  const md = data ? buildMarkdown(data, excluded, detailCache, hardeningCache) : '';
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  cacheRev;
 
   const downloadMd = () => {
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
