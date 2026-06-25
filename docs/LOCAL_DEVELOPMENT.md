@@ -126,28 +126,51 @@ def handler(event: dict, context) -> dict:
 
 ---
 
-## Применение миграций БД
+## Миграции БД
 
-При первом запуске БД пустая. Нужно применить все миграции из `db_migrations/`:
+**Миграции применяются автоматически** при первом старте контейнера `db`.
+
+### Как это работает
+
+При первом запуске PostgreSQL выполняет скрипт `docker/db-init/01_migrations.sh`, который:
+1. Создаёт схему `t_p84706301_security_architectur`
+2. Применяет все `*.sql` из `db_migrations/` в алфавитном (версионном) порядке
+3. Пропускает файлы с ошибкой (уже применённые повторно не ломают БД)
+
+```
+db_migrations/
+  V0001__create_org_domains.sql       ← применится 1-м
+  V0002__create_tech_domains.sql      ← применится 2-м
+  ...
+  V0018__add_iod_to_env_status.sql    ← применится последним
+```
+
+> Скрипт запускается **только при первом старте** (пустой том `pg_data`).  
+> При повторных запусках `docker compose up` данные и схема уже существуют.
+
+### Сброс и повторное применение миграций
 
 ```bash
-# Применить все миграции (пока БД запущена)
+# Полный сброс БД (удаляет том pg_data) и повторный запуск с миграциями
+docker compose -f docker-compose.local.yml down -v
+docker compose -f docker-compose.local.yml up --build
+```
+
+### Добавление новой миграции
+
+```bash
+# Создать файл с следующим номером версии
+touch db_migrations/V0019__my_change.sql
+# Написать SQL, затем пересоздать БД или применить вручную:
 docker compose -f docker-compose.local.yml exec db \
-  psql -U sa_user -d security_arch -c "\i /path/to/migration.sql"
+  psql -U sa_user -d security_arch -f /migrations/V0019__my_change.sql
 ```
 
-Или через psql напрямую:
+### Прямое подключение к БД
 
 ```bash
-# Подключиться к локальной БД
 psql postgresql://sa_user:sa_pass@localhost:5432/security_arch
-
-# Выполнить миграцию
-\i db_migrations/V1__init.sql
-\i db_migrations/V2__....sql
 ```
-
-Файлы миграций хранятся в `db_migrations/` и применяются в порядке версий `V{N}__`.
 
 ---
 
@@ -260,7 +283,10 @@ docker compose up --build
 │   └── arch-templates/index.py
 ├── .env.local.example            # Шаблон переменных для локальной разработки
 ├── .env.local                    # Ваши локальные переменные (не коммитить!)
-├── db_migrations/                # SQL-миграции
+├── db_migrations/                # SQL-миграции (V0001__... → V0018__...)
+├── docker/
+│   └── db-init/
+│       └── 01_migrations.sh      # Авто-применение миграций при первом старте БД
 └── docs/
     ├── ARCHITECTURE.md           # Архитектура проекта
     └── LOCAL_DEVELOPMENT.md      # Этот файл
