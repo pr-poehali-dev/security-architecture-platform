@@ -5,5 +5,4 @@ dist
 .git
 .gitignore
 *.md
-backend/
 db_migrations/
