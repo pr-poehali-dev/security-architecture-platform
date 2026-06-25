@@ -12,10 +12,6 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      # init-скрипт: создаёт схему и применяет все миграции при первом старте
-      - ./docker/db-init/01_migrations.sh:/docker-entrypoint-initdb.d/01_migrations.sh:ro
-      # все SQL-миграции монтируются в /migrations внутри контейнера
-      - ./db_migrations:/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sa_user -d security_arch"]
       interval: 5s
