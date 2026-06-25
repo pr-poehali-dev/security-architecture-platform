@@ -542,7 +542,7 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const [preview, setPreview] = useState(false);
+  const [viewMode, setViewMode] = useState<'editor' | 'raw' | 'rendered'>('editor');
   const [copied, setCopied] = useState(false);
   // Счётчик для ре-рендера после загрузки деталей в ExportReqCard
   const [cacheRev, setCacheRev] = useState(0);
@@ -722,20 +722,16 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
           </div>
           {/* Переключатель режима */}
           <div className="flex items-center rounded-md border border-border overflow-hidden text-xs">
-            <button
-              type="button"
-              onClick={() => setPreview(false)}
-              className={`px-3 py-1.5 transition-colors ${!preview ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted/60'}`}
-            >
-              Редактор
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreview(true)}
-              className={`px-3 py-1.5 transition-colors ${preview ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted/60'}`}
-            >
-              Предпросмотр MD
-            </button>
+            {(['editor', 'raw', 'rendered'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                className={`px-3 py-1.5 transition-colors border-r border-border last:border-r-0 ${viewMode === mode ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted/60'}`}
+              >
+                {mode === 'editor' ? 'Редактор' : mode === 'raw' ? 'Текст MD' : 'Рендер MD'}
+              </button>
+            ))}
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors ml-1">
             <Icon name="X" size={18} />
@@ -755,7 +751,7 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
             </div>
           )}
 
-          {data && !preview && (
+          {data && viewMode === 'editor' && (
             <div className="p-5 flex flex-col gap-4">
 
               {/* Базовая информация (нередактируемая) */}
@@ -915,11 +911,18 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
             </div>
           )}
 
-          {/* Предпросмотр */}
-          {data && preview && (
+          {/* Текст MD */}
+          {data && viewMode === 'raw' && (
             <pre className="p-5 text-xs font-mono leading-relaxed whitespace-pre-wrap text-foreground/80 select-all">
               {md}
             </pre>
+          )}
+
+          {/* Рендер MD */}
+          {data && viewMode === 'rendered' && (
+            <div className="p-5 prose prose-sm prose-invert max-w-none">
+              <MarkdownViewer>{md}</MarkdownViewer>
+            </div>
           )}
         </div>
 
