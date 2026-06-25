@@ -630,24 +630,11 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
       } catch { /* пропускаем битые диаграммы */ }
     }));
 
-    // 2. Конвертируем MD → HTML, заменяя ```mermaid``` блоки на SVG
+    // 2. Конвертируем MD → HTML
     const mdText = md;
 
-    // Сначала вырезаем mermaid-блоки и ставим плейсхолдеры
-    const mermaidBlocks: string[] = [];
-    const mdWithPlaceholders = mdText.replace(/```mermaid\n([\s\S]*?)```/g, (_, code: string) => {
-      // ищем диаграмму по коду
-      const diagram = activeDiagrams.find(m => m.code.trim() === code.trim());
-      const svg = diagram ? svgMap.get(diagram.id) : undefined;
-      const placeholder = `__MERMAID_${mermaidBlocks.length}__`;
-      mermaidBlocks.push(svg
-        ? `<div class="mermaid-svg">${svg}</div>`
-        : `<pre><code>${code}</code></pre>`
-      );
-      return placeholder;
-    });
-
-    const htmlBody = mdWithPlaceholders
+    // Базовый MD→HTML конвертер (без блоков кода)
+    const mdToHtml = (text: string): string => text
       .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -666,10 +653,33 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
       .replace(/^- (.+)$/gm, '<li>$1</li>')
       .replace(/\n{2,}/g, '</p><p>')
       .replace(/__TABLE_SEP__\n?/g, '')
-      .replace(/(<li>.+<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-      .replace(/(<tr>.+<\/tr>\n?)+/g, (m) => `<table>${m}</table>`)
-      // восстанавливаем SVG-блоки
-      .replace(/__MERMAID_(\d+)__/g, (_, i) => mermaidBlocks[Number(i)] ?? '');
+      .replace(/(<li>[\s\S]+?<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+      .replace(/(<tr>[\s\S]+?<\/tr>\n?)+/g, (m) => `<table>${m}</table>`);
+
+    // Вырезаем все блоки кода и ставим плейсхолдеры
+    const codeBlocks: string[] = [];
+    const mdWithPlaceholders = mdText.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang: string, content: string) => {
+      const placeholder = `__CODE_${codeBlocks.length}__`;
+      if (lang === 'mermaid') {
+        // SVG из предварительно отрендеренных диаграмм
+        const diagram = activeDiagrams.find(m => m.code.trim() === content.trim());
+        const svg = diagram ? svgMap.get(diagram.id) : undefined;
+        codeBlocks.push(svg
+          ? `<div class="mermaid-svg">${svg}</div>`
+          : `<pre><code>${content}</code></pre>`
+        );
+      } else if (lang === 'markdown' || lang === 'md') {
+        // Рендерим вложенный MD как HTML в стилизованном блоке
+        codeBlocks.push(`<div class="hardening-block">${mdToHtml(content)}</div>`);
+      } else {
+        codeBlocks.push(`<pre><code>${content}</code></pre>`);
+      }
+      return placeholder;
+    });
+
+    const htmlBody = mdToHtml(mdWithPlaceholders)
+      // восстанавливаем блоки кода
+      .replace(/__CODE_(\d+)__/g, (_, i) => codeBlocks[Number(i)] ?? '');
 
     const html = `<!DOCTYPE html>
 <html lang="ru">
@@ -696,7 +706,11 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
   strong { font-weight: 600; }
   .mermaid-svg { margin: 12px 0; page-break-inside: avoid; }
   .mermaid-svg svg { max-width: 100%; height: auto; background: #fff; }
-  @media print { body { padding: 0; } .mermaid-svg { page-break-inside: avoid; } }
+  .hardening-block { margin: 8px 0; padding: 12px 16px; background: #fff7ed; border-left: 3px solid #f97316; border-radius: 0 6px 6px 0; page-break-inside: avoid; }
+  .hardening-block h1,.hardening-block h2,.hardening-block h3,.hardening-block h4 { color: #9a3412; margin: 8px 0 4px; }
+  .hardening-block code { background: #fed7aa; }
+  .hardening-block pre { background: #ffedd5; }
+  @media print { body { padding: 0; } .mermaid-svg,.hardening-block { page-break-inside: avoid; } }
 </style>
 </head>
 <body><p>${htmlBody}</p>
