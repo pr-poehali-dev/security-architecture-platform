@@ -771,11 +771,15 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
             <div className="p-5 flex flex-col gap-4">
 
               {/* Базовая информация (нередактируемая) */}
-              <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 flex flex-wrap gap-3 text-xs">
-                <span className="font-mono text-muted-foreground">{data.id}</span>
-                <span className="font-semibold">{data.name}</span>
-                <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">{data.typeLabel}</span>
-                <span className="text-muted-foreground">{data.description ? data.description.slice(0, 80) + (data.description.length > 80 ? '…' : '') : '—'}</span>
+              <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 flex flex-col gap-1.5 text-xs">
+                <div className="flex flex-wrap gap-3">
+                  <span className="font-mono text-muted-foreground">{data.id}</span>
+                  <span className="font-semibold">{data.name}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">{data.typeLabel}</span>
+                </div>
+                {data.description && (
+                  <span className="text-muted-foreground leading-relaxed">{data.description}</span>
+                )}
               </div>
 
               {/* Мета (удаляемые поля) */}
