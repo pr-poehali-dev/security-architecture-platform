@@ -58,7 +58,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/webapp/Dockerfile.local
+      dockerfile: backend/webapp/Dockerfile.backend
     restart: unless-stopped
     depends_on:
       db:
