@@ -267,65 +267,6 @@ function ExportReqCard({
   );
 }
 
-// ── Группы доменов со сворачиванием ──────────────────────────────────────────
-
-function DomainGroups({
-  groups, excluded, onToggle,
-}: {
-  groups: ExportRequirementGroup[];
-  excluded: Set<string>;
-  onToggle: (key: string) => void;
-}) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-  const toggleCollapse = (key: string) =>
-    setCollapsed(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-
-  return (
-    <div className="flex flex-col gap-3">
-      {groups.map((g: ExportRequirementGroup) => {
-        const key = g.domainId ?? '__none__';
-        const isCollapsed = collapsed.has(key);
-        const activeCount = g.requirements.filter(r => !excluded.has(`req-${r.id}`)).length;
-        const total = g.requirements.length;
-
-        return (
-          <div key={key} className="rounded-md border border-border/60 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => toggleCollapse(key)}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-            >
-              <Icon name={isCollapsed ? 'ChevronRight' : 'ChevronDown'} size={12} className="text-muted-foreground shrink-0" />
-              <Icon name="Layers" size={10} className="text-muted-foreground shrink-0" />
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex-1">{g.domainName}</span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${activeCount > 0 ? 'bg-accent/15 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                {activeCount}/{total}
-              </span>
-            </button>
-            {!isCollapsed && (
-              <div className="flex flex-col gap-2 p-2">
-                {g.requirements.map((r: ExportRequirement) => (
-                  <ExportReqCard
-                    key={r.id}
-                    r={r}
-                    removed={excluded.has(`req-${r.id}`)}
-                    onToggle={() => onToggle(`req-${r.id}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── MD-генератор ─────────────────────────────────────────────────────────────
 
 const ENV_STATUS_LABEL: Record<string, string> = {
@@ -904,7 +845,25 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               {/* Требования */}
               {(data.requirementsByDomain ?? []).length > 0 && (
                 <Section icon="ListChecks" title="Требования" sectionKey="requirements" excluded={excluded} onToggleSection={toggle} onRemove={toggle}>
-                  <DomainGroups groups={data.requirementsByDomain ?? []} excluded={excluded} onToggle={toggle} />
+                  <div className="flex flex-col gap-4">
+                    {(data.requirementsByDomain ?? []).map((g: ExportRequirementGroup) => (
+                      <div key={g.domainId ?? '__none__'}>
+                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1">
+                          <Icon name="Layers" size={9} /> {g.domainName}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {g.requirements.map((r: ExportRequirement) => (
+                            <ExportReqCard
+                              key={r.id}
+                              r={r}
+                              removed={excluded.has(`req-${r.id}`)}
+                              onToggle={() => toggle(`req-${r.id}`)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </Section>
               )}
 
