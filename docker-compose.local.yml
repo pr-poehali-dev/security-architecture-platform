@@ -58,7 +58,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/webapp/Dockerfile.backend
+      dockerfile: backend/Dockerfile.local
     restart: unless-stopped
     depends_on:
       db:
@@ -70,7 +70,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/webapp:/app/backend
+      - ./backend:/app/backend
 
   # ── Frontend: Vite dev server с HMR ─────────────────────────────────────────
   frontend:
