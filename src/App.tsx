@@ -25,7 +25,6 @@ import HardeningForm from "./pages/hardening/HardeningForm";
 import ArchTemplateList from "./pages/arch-templates/ArchTemplateList";
 import ArchTemplateView from "./pages/arch-templates/ArchTemplateView";
 import ArchTemplateForm from "./pages/arch-templates/ArchTemplateForm";
-import LibraryPage from "./pages/library/LibraryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,7 +37,6 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/library" replace />} />
-          <Route path="/library" element={<Layout section="library"><LibraryPage /></Layout>} />
 
           {/* Организационный домен */}
           <Route path="/org-domain" element={<Layout section="org-domain"><OrgDomainList /></Layout>} />
