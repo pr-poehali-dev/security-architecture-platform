@@ -420,7 +420,9 @@ function buildMarkdown(
           if (r.hardeningId && hContent?.markdown) {
             lines.push('**Харденинг:**');
             lines.push('');
+            lines.push('```markdown');
             lines.push(hContent.markdown);
+            lines.push('```');
             lines.push('');
           }
         });
