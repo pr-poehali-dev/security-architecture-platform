@@ -611,6 +611,77 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
     document.body.removeChild(ta);
   };
 
+  const downloadPdf = () => {
+    // Конвертируем MD в простой HTML для печати
+    const mdText = md;
+    const htmlBody = mdText
+      // заголовки
+      .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      // горизонтальная черта
+      .replace(/^---$/gm, '<hr/>')
+      // блок цитаты
+      .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+      // жирный + курсив
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // инлайн-код
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // таблицы (упрощённо)
+      .replace(/^\|(.+)\|$/gm, (line) => {
+        if (/^\|[-| :]+\|$/.test(line)) return '__TABLE_SEP__';
+        const cells = line.slice(1, -1).split('|').map(c => `<td>${c.trim()}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      })
+      // списки
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      // параграфы
+      .replace(/\n{2,}/g, '</p><p>')
+      // убираем разделители таблиц
+      .replace(/__TABLE_SEP__\n?/g, '')
+      // оборачиваем li в ul
+      .replace(/(<li>.+<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+      // оборачиваем tr в table
+      .replace(/(<tr>.+<\/tr>\n?)+/g, (m) => `<table>${m}</table>`);
+
+    const html = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<title>${data?.name ?? 'Экспорт'}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; line-height: 1.6; color: #111; padding: 32px 40px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
+  h2 { font-size: 16px; margin: 24px 0 8px; color: #1e40af; }
+  h3 { font-size: 13px; margin: 16px 0 6px; color: #374151; }
+  h4 { font-size: 12px; margin: 12px 0 4px; font-weight: 600; }
+  p { margin: 6px 0; }
+  ul { margin: 6px 0 6px 20px; }
+  li { margin: 2px 0; }
+  code { background: #f3f4f6; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 11px; }
+  blockquote { border-left: 3px solid #d1d5db; padding-left: 10px; color: #6b7280; margin: 6px 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; }
+  td, th { border: 1px solid #e5e7eb; padding: 4px 8px; text-align: left; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  strong { font-weight: 600; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body><p>${htmlBody}</p>
+<script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</` + `script>
+</body></html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl border border-border bg-background shadow-2xl">
@@ -849,6 +920,14 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
               >
                 <Icon name={copied ? 'Check' : 'Copy'} size={13} />
                 {copied ? 'Скопировано' : 'Копировать MD'}
+              </button>
+              <button
+                type="button"
+                onClick={downloadPdf}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+              >
+                <Icon name="FileText" size={13} />
+                Скачать PDF
               </button>
               <button
                 type="button"
