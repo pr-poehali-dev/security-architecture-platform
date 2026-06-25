@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import mermaid from 'mermaid';
 import Icon from '@/components/ui/icon';
 import MermaidPreview from '@/components/technologies/MermaidPreview';
 import MarkdownViewer from '@/components/technologies/MarkdownViewer';
@@ -611,41 +612,62 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
     document.body.removeChild(ta);
   };
 
-  const downloadPdf = () => {
-    // Конвертируем MD в простой HTML для печати
+  const pdfMermaidIdx = useRef(0);
+
+  const downloadPdf = async () => {
+    // 1. Рендерим все активные mermaid-диаграммы в SVG
+    const activeDiagrams = (data?.mermaidDiagrams ?? []).filter(
+      m => !excluded.has('mermaid') && !excluded.has(`mermaid-${m.id}`)
+    );
+    const svgMap = new Map<number, string>();
+    await Promise.all(activeDiagrams.map(async (m) => {
+      try {
+        const id = `pdf-mermaid-${++pdfMermaidIdx.current}`;
+        const { svg } = await mermaid.render(id, m.code);
+        svgMap.set(m.id, svg);
+      } catch { /* пропускаем битые диаграммы */ }
+    }));
+
+    // 2. Конвертируем MD → HTML, заменяя ```mermaid``` блоки на SVG
     const mdText = md;
-    const htmlBody = mdText
-      // заголовки
+
+    // Сначала вырезаем mermaid-блоки и ставим плейсхолдеры
+    const mermaidBlocks: string[] = [];
+    const mdWithPlaceholders = mdText.replace(/```mermaid\n([\s\S]*?)```/g, (_, code: string) => {
+      // ищем диаграмму по коду
+      const diagram = activeDiagrams.find(m => m.code.trim() === code.trim());
+      const svg = diagram ? svgMap.get(diagram.id) : undefined;
+      const placeholder = `__MERMAID_${mermaidBlocks.length}__`;
+      mermaidBlocks.push(svg
+        ? `<div class="mermaid-svg">${svg}</div>`
+        : `<pre><code>${code}</code></pre>`
+      );
+      return placeholder;
+    });
+
+    const htmlBody = mdWithPlaceholders
       .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
       .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      // горизонтальная черта
       .replace(/^---$/gm, '<hr/>')
-      // блок цитаты
       .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-      // жирный + курсив
       .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      // инлайн-код
       .replace(/`([^`]+)`/g, '<code>$1</code>')
-      // таблицы (упрощённо)
       .replace(/^\|(.+)\|$/gm, (line) => {
         if (/^\|[-| :]+\|$/.test(line)) return '__TABLE_SEP__';
         const cells = line.slice(1, -1).split('|').map(c => `<td>${c.trim()}</td>`).join('');
         return `<tr>${cells}</tr>`;
       })
-      // списки
       .replace(/^- (.+)$/gm, '<li>$1</li>')
-      // параграфы
       .replace(/\n{2,}/g, '</p><p>')
-      // убираем разделители таблиц
       .replace(/__TABLE_SEP__\n?/g, '')
-      // оборачиваем li в ul
       .replace(/(<li>.+<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-      // оборачиваем tr в table
-      .replace(/(<tr>.+<\/tr>\n?)+/g, (m) => `<table>${m}</table>`);
+      .replace(/(<tr>.+<\/tr>\n?)+/g, (m) => `<table>${m}</table>`)
+      // восстанавливаем SVG-блоки
+      .replace(/__MERMAID_(\d+)__/g, (_, i) => mermaidBlocks[Number(i)] ?? '');
 
     const html = `<!DOCTYPE html>
 <html lang="ru">
@@ -663,13 +685,16 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
   ul { margin: 6px 0 6px 20px; }
   li { margin: 2px 0; }
   code { background: #f3f4f6; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 11px; }
+  pre { background: #f3f4f6; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
   blockquote { border-left: 3px solid #d1d5db; padding-left: 10px; color: #6b7280; margin: 6px 0; }
   hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
   table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; }
   td, th { border: 1px solid #e5e7eb; padding: 4px 8px; text-align: left; }
   tr:nth-child(even) td { background: #f9fafb; }
   strong { font-weight: 600; }
-  @media print { body { padding: 0; } }
+  .mermaid-svg { margin: 12px 0; page-break-inside: avoid; }
+  .mermaid-svg svg { max-width: 100%; height: auto; background: #fff; }
+  @media print { body { padding: 0; } .mermaid-svg { page-break-inside: avoid; } }
 </style>
 </head>
 <body><p>${htmlBody}</p>
