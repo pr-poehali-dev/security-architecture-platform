@@ -778,7 +778,9 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
                   <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">{data.typeLabel}</span>
                 </div>
                 {data.description && (
-                  <span className="text-muted-foreground leading-relaxed">{data.description}</span>
+                  <div className="text-muted-foreground">
+                    <MarkdownViewer>{data.description}</MarkdownViewer>
+                  </div>
                 )}
               </div>
 
