@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Icon from '@/components/ui/icon';
 import MermaidPreview from '@/components/technologies/MermaidPreview';
+import MarkdownViewer from '@/components/technologies/MarkdownViewer';
 import {
   fetchArchTemplateExport,
   ExportData,
@@ -13,7 +14,12 @@ import {
   ExternalLink,
   TemplateFile,
   TemplateRef,
+  ENVS,
+  EnvStatus,
+  EnvStatusDual,
 } from '@/api/archTemplates';
+import { fetchRequirement, RequirementDetail } from '@/api/requirements';
+import { fetchReqContent, ReqContent } from '@/api/hardening';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +44,227 @@ const REQ_TYPE_MAP: Record<string, string> = {
   technical: 'Технические', functional: 'Функциональные',
   non_functional: 'Нефункциональные', organizational: 'Организационные',
 };
+
+const REQ_TYPE_STYLE: Record<string, string> = {
+  technical:      'bg-blue-500/10 text-blue-400',
+  functional:     'bg-accent/10 text-accent',
+  non_functional: 'bg-purple-500/10 text-purple-400',
+  organizational: 'bg-orange-500/10 text-orange-400',
+};
+
+const ENV_STATUS_STYLE: Record<EnvStatus, { cell: string; icon: string; label: string }> = {
+  required:     { cell: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', icon: 'Check',         label: 'Обязательно'  },
+  conditional:  { cell: 'bg-amber-500/15  text-amber-700  dark:text-amber-300',    icon: 'TriangleAlert', label: 'Условие'      },
+  not_required: { cell: 'bg-muted/50 text-muted-foreground',                        icon: 'Minus',         label: 'Не требуется' },
+};
+
+const IOD_ROWS: { key: 'noIod' | 'iod'; label: string }[] = [
+  { key: 'noIod', label: 'Без ИОД' },
+  { key: 'iod',   label: 'С ИОД'   },
+];
+
+// Кеши (между рендерами модала)
+const detailCache = new Map<string, RequirementDetail>();
+const hardeningCache = new Map<string, ReqContent>();
+
+// ── Полная карточка требования ────────────────────────────────────────────────
+
+function ExportReqCard({
+  r, removed, onToggle,
+}: {
+  r: ExportRequirement; removed: boolean; onToggle: () => void;
+}) {
+  const [detail, setDetail] = useState<RequirementDetail | null>(detailCache.get(r.id) ?? null);
+  const [loadingD, setLoadingD] = useState(!detailCache.has(r.id));
+
+  const hKey = r.hardeningId ? `${r.hardeningId}::${r.id}` : null;
+  const [hContent, setHContent] = useState<ReqContent | null>(hKey ? (hardeningCache.get(hKey) ?? null) : null);
+  const [loadingH, setLoadingH] = useState(!!hKey && !hardeningCache.has(hKey));
+
+  useEffect(() => {
+    if (detailCache.has(r.id)) return;
+    fetchRequirement(r.id)
+      .then(d => { detailCache.set(r.id, d); setDetail(d); })
+      .finally(() => setLoadingD(false));
+  }, [r.id]);
+
+  useEffect(() => {
+    if (!hKey || !r.hardeningId) return;
+    if (hardeningCache.has(hKey)) return;
+    fetchReqContent(r.hardeningId, r.id)
+      .then(c => { hardeningCache.set(hKey!, c); setHContent(c); })
+      .finally(() => setLoadingH(false));
+  }, [hKey, r.hardeningId, r.id]);
+
+  const envStatus: EnvStatusDual | undefined = hContent?.envStatus ?? r.envStatus;
+
+  return (
+    <div className={`rounded-md border transition-colors ${removed ? 'border-border/30 opacity-40' : 'border-border bg-muted/10'}`}>
+      {/* Заголовок */}
+      <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-border/50">
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-medium">{r.shortDesc}</span>
+          <span className="ml-2 text-[10px] font-mono text-muted-foreground">{r.id}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`shrink-0 text-[10px] px-2 py-0.5 rounded border transition-colors ${removed
+            ? 'border-accent/40 text-accent hover:bg-accent/10'
+            : 'border-destructive/30 text-destructive hover:bg-destructive/10'}`}
+        >
+          {removed ? 'Вернуть' : 'Убрать'}
+        </button>
+      </div>
+
+      {!removed && (
+        <div className="px-3 py-2.5 flex flex-col gap-2.5">
+          {loadingD && (
+            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              <Icon name="Loader2" size={12} className="animate-spin" /> Загрузка…
+            </div>
+          )}
+
+          {/* Таблица envStatus */}
+          {envStatus && (
+            <div className="overflow-x-auto rounded border border-border/50">
+              <table className="w-full text-[10px] border-collapse">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="px-2 py-1 text-left text-muted-foreground font-medium w-16" />
+                    {ENVS.map(e => (
+                      <th key={e.key} className="px-2 py-1 text-center text-muted-foreground font-medium">{e.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {IOD_ROWS.map(row => (
+                    <tr key={row.key} className="border-b border-border/30 last:border-0">
+                      <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">{row.label}</td>
+                      {ENVS.map(e => {
+                        const st: EnvStatus = envStatus[row.key][e.key];
+                        const s = ENV_STATUS_STYLE[st];
+                        return (
+                          <td key={e.key} className={`px-2 py-1.5 text-center ${s.cell}`}>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <Icon name={s.icon} size={10} />
+                              <span className="text-[9px] leading-tight">{s.label}</span>
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {detail && (
+            <>
+              {/* Бейджи: тип, закупки, домен, теги, технологии */}
+              <div className="flex flex-wrap gap-1.5">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${REQ_TYPE_STYLE[detail.reqType] ?? 'bg-muted text-muted-foreground'}`}>
+                  {detail.reqTypeLabel}
+                </span>
+                {detail.isProcurement && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 font-medium flex items-center gap-1">
+                    <Icon name="ShoppingCart" size={9} /> Закупки
+                  </span>
+                )}
+                {r.source === 'hardening' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 flex items-center gap-1">
+                    <Icon name="ShieldCheck" size={9} /> Харденинг
+                  </span>
+                )}
+                {detail.techDomain && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1">
+                    <Icon name="Layers" size={9} /> {detail.techDomain.name}
+                  </span>
+                )}
+                {detail.tags.map(t => (
+                  <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground">#{t.name}</span>
+                ))}
+                {detail.technologies.map(t => (
+                  <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted/30 text-muted-foreground flex items-center gap-1">
+                    <Icon name="Cpu" size={9} /> {t.name}
+                  </span>
+                ))}
+              </div>
+
+              {/* Балл / Вес / Владелец */}
+              {(detail.scorePoint != null || detail.scoreWeight != null || detail.owner) && (
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                  {detail.scorePoint != null && (
+                    <span className="flex items-center gap-1">
+                      <Icon name="Star" size={10} className="text-accent" />
+                      Балл: <span className="font-semibold text-foreground ml-0.5">{detail.scorePoint}</span>
+                    </span>
+                  )}
+                  {detail.scoreWeight != null && (
+                    <span className="flex items-center gap-1">
+                      <Icon name="Weight" size={10} className="text-accent" />
+                      Вес: <span className="font-semibold text-foreground ml-0.5">{detail.scoreWeight}</span>
+                    </span>
+                  )}
+                  {detail.owner && (
+                    <span className="flex items-center gap-1"><Icon name="User" size={10} /> {detail.owner}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Описание */}
+              {detail.description && (
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{detail.description}</p>
+              )}
+
+              {/* Нормативка / метрики / способ + харденинг */}
+              {(detail.normativeDoc || detail.controlMetrics || detail.fulfillmentMethod || r.hardeningId) && (
+                <div className="flex gap-4 items-start pt-1 border-t border-border/40">
+                  {(detail.normativeDoc || detail.controlMetrics || detail.fulfillmentMethod) && (
+                    <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                      {detail.normativeDoc && (
+                        <div>
+                          <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Нормативная документация</div>
+                          <div className="text-[11px]">{detail.normativeDoc}</div>
+                        </div>
+                      )}
+                      {detail.controlMetrics && (
+                        <div>
+                          <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Метрики контроля</div>
+                          <div className="text-[11px]">{detail.controlMetrics}</div>
+                        </div>
+                      )}
+                      {detail.fulfillmentMethod && (
+                        <div>
+                          <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Способ исполнения</div>
+                          <div className="text-[11px]">{detail.fulfillmentMethod}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {r.hardeningId && (
+                    <div className="flex flex-col gap-1 min-w-0 flex-1 pl-3 border-l border-orange-500/30">
+                      <div className="flex items-center gap-1">
+                        <Icon name="ShieldCheck" size={10} className="text-orange-400" />
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Харденинг</span>
+                        {loadingH && <Icon name="Loader2" size={9} className="animate-spin text-orange-400/50 ml-1" />}
+                      </div>
+                      {!loadingH && (hContent?.markdown
+                        ? <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
+                        : <span className="text-[11px] text-muted-foreground/50 italic">Текст не заполнен</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── MD-генератор ─────────────────────────────────────────────────────────────
 
@@ -423,105 +650,14 @@ export default function ArchTemplateExportModal({ templateId, templateName, onCl
                           <Icon name="Layers" size={9} /> {g.domainName}
                         </div>
                         <div className="flex flex-col gap-2">
-                          {g.requirements.map((r: ExportRequirement) => {
-                            const removed = excluded.has(`req-${r.id}`);
-                            return (
-                              <div
-                                key={r.id}
-                                className={`rounded-md border transition-colors ${removed ? 'border-border/30 opacity-40' : 'border-border bg-muted/10'}`}
-                              >
-                                {/* Заголовок требования */}
-                                <div className="flex items-start justify-between gap-2 px-3 py-2 border-b border-border/50">
-                                  <div className="flex-1 min-w-0">
-                                    <span className="text-xs font-medium">{r.shortDesc}</span>
-                                    <span className="ml-2 text-[10px] font-mono text-muted-foreground">{r.id}</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggle(`req-${r.id}`)}
-                                    className={`shrink-0 text-[10px] px-2 py-0.5 rounded border transition-colors ${removed ? 'border-accent/40 text-accent hover:bg-accent/10' : 'border-destructive/30 text-destructive hover:bg-destructive/10'}`}
-                                  >
-                                    {removed ? 'Вернуть' : 'Убрать'}
-                                  </button>
-                                </div>
-                                {/* Детали */}
-                                {!removed && (
-                                  <div className="px-3 py-2 flex flex-col gap-2">
-                                    {/* Теги-бейджи */}
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {r.reqTypeLabel && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium">{r.reqTypeLabel}</span>
-                                      )}
-                                      {r.isProcurement && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 font-medium flex items-center gap-1">
-                                          <Icon name="ShoppingCart" size={9} /> Закупки
-                                        </span>
-                                      )}
-                                      {r.source === 'hardening' && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 flex items-center gap-1">
-                                          <Icon name="ShieldCheck" size={9} /> Харденинг
-                                        </span>
-                                      )}
-                                      {r.techName && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
-                                          <Icon name="Cpu" size={9} /> {r.techName}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {/* Скор + владелец */}
-                                    {(r.scorePoint || r.scoreWeight || r.owner) && (
-                                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                                        {r.scorePoint != null && (
-                                          <span className="flex items-center gap-1">
-                                            <Icon name="Star" size={10} className="text-accent" />
-                                            Балл: <span className="font-semibold text-foreground ml-0.5">{r.scorePoint}</span>
-                                          </span>
-                                        )}
-                                        {r.scoreWeight != null && (
-                                          <span className="flex items-center gap-1">
-                                            <Icon name="Weight" size={10} className="text-accent" />
-                                            Вес: <span className="font-semibold text-foreground ml-0.5">{r.scoreWeight}</span>
-                                          </span>
-                                        )}
-                                        {r.owner && (
-                                          <span className="flex items-center gap-1">
-                                            <Icon name="User" size={10} /> {r.owner}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    {/* Описание */}
-                                    {r.description && (
-                                      <p className="text-[11px] text-muted-foreground leading-relaxed">{r.description}</p>
-                                    )}
-                                    {/* Нормативка / метрики / способ */}
-                                    {(r.normativeDoc || r.controlMetrics || r.fulfillmentMethod) && (
-                                      <div className="flex flex-col gap-1.5 pt-1 border-t border-border/40">
-                                        {r.normativeDoc && (
-                                          <div>
-                                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Нормативная документация</div>
-                                            <div className="text-[11px]">{r.normativeDoc}</div>
-                                          </div>
-                                        )}
-                                        {r.controlMetrics && (
-                                          <div>
-                                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Метрики контроля</div>
-                                            <div className="text-[11px]">{r.controlMetrics}</div>
-                                          </div>
-                                        )}
-                                        {r.fulfillmentMethod && (
-                                          <div>
-                                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">Способ исполнения</div>
-                                            <div className="text-[11px]">{r.fulfillmentMethod}</div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                          {g.requirements.map((r: ExportRequirement) => (
+                            <ExportReqCard
+                              key={r.id}
+                              r={r}
+                              removed={excluded.has(`req-${r.id}`)}
+                              onToggle={() => toggle(`req-${r.id}`)}
+                            />
+                          ))}
                         </div>
                       </div>
                     ))}
