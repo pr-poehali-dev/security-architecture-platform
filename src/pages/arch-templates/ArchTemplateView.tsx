@@ -33,9 +33,10 @@ function SectionLabel({ icon, text }: { icon: string; text: string }) {
 
 type Tab = 'overview' | 'requirements' | 'mermaid' | 'files' | 'history';
 
-export default function ArchTemplateView() {
+export default function ArchTemplateView({ readonly = false }: { readonly?: boolean }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const basePath = readonly ? '/architectures' : '/templates';
   const [data, setData] = useState<ArchTemplateDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -81,7 +82,7 @@ export default function ArchTemplateView() {
         <div className="absolute inset-0 grid-texture opacity-[0.08]" />
         <div className="relative px-6 py-6 max-w-[1400px] mx-auto">
           <div className="flex items-center gap-2 text-sm text-primary-foreground/60 mb-3">
-            <Link to="/templates" className="hover:text-primary-foreground transition-colors flex items-center gap-1.5">
+            <Link to={basePath} className="hover:text-primary-foreground transition-colors flex items-center gap-1.5">
               <Icon name="ChevronLeft" size={16} /> Шаблоны архитектур
             </Link>
           </div>
@@ -112,13 +113,15 @@ export default function ArchTemplateView() {
               >
                 <Icon name="FileDown" size={15} /> Экспорт
               </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/templates/${id}/edit`)}
-                className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
-              >
-                <Icon name="Pencil" size={15} /> Редактировать
-              </button>
+              {!readonly && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/templates/${id}/edit`)}
+                  className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+                >
+                  <Icon name="Pencil" size={15} /> Редактировать
+                </button>
+              )}
             </div>
           </div>
           {data.tags.length > 0 && (

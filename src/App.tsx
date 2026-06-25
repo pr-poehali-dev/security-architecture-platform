@@ -80,6 +80,10 @@ const App = () => (
           <Route path="/templates/:id" element={<Layout section="templates"><ArchTemplateView /></Layout>} />
           <Route path="/templates/:id/edit" element={<Layout section="templates"><ArchTemplateForm /></Layout>} />
 
+          {/* Архитектуры — режим просмотра без редактирования */}
+          <Route path="/architectures" element={<Layout section="architectures"><ArchTemplateList readonly /></Layout>} />
+          <Route path="/architectures/:id" element={<Layout section="architectures"><ArchTemplateView readonly /></Layout>} />
+
           {/* Остальные разделы */}
           <Route path="/:section" element={<Layout />} />
 

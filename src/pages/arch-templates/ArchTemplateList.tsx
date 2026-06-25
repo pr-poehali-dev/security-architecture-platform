@@ -17,7 +17,7 @@ const TYPE_STYLE: Record<string, string> = {
   organizational: 'bg-purple-500/10 text-purple-400',
 };
 
-export default function ArchTemplateList() {
+export default function ArchTemplateList({ readonly = false }: { readonly?: boolean }) {
   const navigate = useNavigate();
   const [items, setItems] = useState<ArchTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,13 +89,15 @@ export default function ArchTemplateList() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/templates/new')}
-              className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
-            >
-              <Icon name="Plus" size={16} /> Добавить шаблон
-            </button>
+            {!readonly && (
+              <button
+                type="button"
+                onClick={() => navigate('/templates/new')}
+                className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
+              >
+                <Icon name="Plus" size={16} /> Добавить шаблон
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -183,7 +185,7 @@ export default function ArchTemplateList() {
               <Icon name="Boxes" size={26} className="text-muted-foreground/50" />
             </div>
             <p className="font-medium">{items.length === 0 ? 'Нет шаблонов архитектур' : 'Ничего не найдено'}</p>
-            {items.length === 0 && (
+            {items.length === 0 && !readonly && (
               <button
                 type="button"
                 onClick={() => navigate('/templates/new')}
@@ -217,7 +219,7 @@ export default function ArchTemplateList() {
             {filtered.map((d, i) => (
               <Link
                 key={d.id}
-                to={`/templates/${d.id}`}
+                to={readonly ? `/architectures/${d.id}` : `/templates/${d.id}`}
                 className={`grid grid-cols-[1fr_120px_130px_120px_80px_50px] gap-4 px-4 py-3.5 items-center hover:bg-muted/40 transition-colors ${i < filtered.length - 1 ? 'border-b border-border' : ''}`}
               >
                 <div className="min-w-0">
