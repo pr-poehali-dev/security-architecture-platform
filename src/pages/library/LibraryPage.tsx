@@ -181,6 +181,38 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }) {
                   </div>
                 )}
 
+                {/* Технологии */}
+                {data.technologies.length > 0 && (
+                  <div>
+                    <SectionLabel icon="Cpu" text="Технологии" />
+                    <div className="flex flex-wrap gap-1.5">
+                      {data.technologies.map(t => (
+                        <span key={t.id} className="text-[11px] px-2 py-0.5 rounded-full border border-border bg-muted/30 text-muted-foreground flex items-center gap-1">
+                          <Icon name="Cpu" size={9} /> {t.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Решения */}
+                {data.decisions.length > 0 && (
+                  <div>
+                    <SectionLabel icon="Workflow" text="Решения" />
+                    <div className="flex flex-col gap-1.5">
+                      {data.decisions.map(d => (
+                        <div key={d.id} className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card/50 text-xs">
+                          <Icon name="Workflow" size={12} className="text-muted-foreground shrink-0" />
+                          <span className="flex-1 truncate">{d.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${d.decisionType === 'technical' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                            {d.typeLabel}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Описание */}
                 {data.description && (
                   <div>
@@ -216,37 +248,6 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }) {
                   ))}
                 </div>
 
-                {/* Технологии */}
-                {data.technologies.length > 0 && (
-                  <div>
-                    <SectionLabel icon="Cpu" text="Технологии" />
-                    <div className="flex flex-wrap gap-1.5">
-                      {data.technologies.map(t => (
-                        <span key={t.id} className="text-[11px] px-2 py-0.5 rounded-full border border-border bg-muted/30 text-muted-foreground flex items-center gap-1">
-                          <Icon name="Cpu" size={9} /> {t.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Решения */}
-                {data.decisions.length > 0 && (
-                  <div>
-                    <SectionLabel icon="Workflow" text="Решения" />
-                    <div className="flex flex-col gap-1.5">
-                      {data.decisions.map(d => (
-                        <div key={d.id} className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card/50 text-xs">
-                          <Icon name="Workflow" size={12} className="text-muted-foreground shrink-0" />
-                          <span className="flex-1 truncate">{d.name}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${d.decisionType === 'technical' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
-                            {d.typeLabel}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
