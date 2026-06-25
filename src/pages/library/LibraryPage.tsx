@@ -166,6 +166,21 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }) {
                   ))}
                 </div>
 
+                {/* Связанные шаблоны */}
+                {data.relatedTemplates.length > 0 && (
+                  <div>
+                    <SectionLabel icon="Boxes" text="Связанные шаблоны" />
+                    <div className="flex flex-col gap-1">
+                      {data.relatedTemplates.map(t => (
+                        <div key={t.id} className="flex items-center gap-2 py-1.5 text-xs text-muted-foreground">
+                          <Icon name="Boxes" size={11} className="shrink-0" />
+                          <span className="flex-1 truncate">{t.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Описание */}
                 {data.description && (
                   <div>
@@ -227,21 +242,6 @@ function DetailPanel({ id, onClose }: { id: string; onClose: () => void }) {
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${d.decisionType === 'technical' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
                             {d.typeLabel}
                           </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Связанные шаблоны */}
-                {data.relatedTemplates.length > 0 && (
-                  <div>
-                    <SectionLabel icon="Boxes" text="Связанные шаблоны" />
-                    <div className="flex flex-col gap-1">
-                      {data.relatedTemplates.map(t => (
-                        <div key={t.id} className="flex items-center gap-2 py-1.5 text-xs text-muted-foreground">
-                          <Icon name="Boxes" size={11} className="shrink-0" />
-                          <span className="flex-1 truncate">{t.name}</span>
                         </div>
                       ))}
                     </div>
