@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_ORG_DOMAINS_URL as string;
+const BASE = 'https://functions.poehali.dev/5f3f729b-229c-4030-a076-3c99047514cb';
 
 export type OrgDomainStatus = 'active' | 'in_development' | 'inactive' | 'archived';
 
