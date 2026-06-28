@@ -1,4 +1,4 @@
-const BASE = 'https://functions.poehali.dev/52d789a0-323c-4a86-b298-c509d0e606f7';
+const BASE = import.meta.env.VITE_DECISIONS_URL as string;
 
 export type DecisionStatus = 'active' | 'in_development' | 'inactive' | 'archived';
 export type DecisionType = 'technical' | 'organizational';
