@@ -70,8 +70,6 @@ services:
       S3_ENDPOINT_URL: http://minio:9000
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend/webapp/main.py:/app/main.py
 
   # ── Frontend: Nginx со статической сборкой ───────────────────────────────────
   frontend:
