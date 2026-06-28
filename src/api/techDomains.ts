@@ -1,4 +1,4 @@
-const BASE = 'https://functions.poehali.dev/9fa81744-e3d1-4877-aad6-fe08b57027cd';
+const BASE = import.meta.env.VITE_TECH_DOMAINS_URL as string;
 
 export type TechDomainStatus = 'active' | 'in_development' | 'inactive' | 'archived';
 

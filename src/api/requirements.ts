@@ -1,4 +1,4 @@
-const BASE = 'https://functions.poehali.dev/14afbc19-4fdc-4803-b634-10174f2a44dd';
+const BASE = import.meta.env.VITE_REQUIREMENTS_URL as string;
 
 export type ReqStatus = 'active' | 'in_development' | 'inactive' | 'archived';
 export type ReqType = 'technical' | 'functional' | 'non_functional' | 'organizational';
