@@ -1,4 +1,4 @@
-const BASE = 'https://functions.poehali.dev/20c2f5e5-2e8b-40fa-8ffb-e978290332d7';
+const BASE = import.meta.env.VITE_ARCH_TEMPLATES_URL as string;
 
 export type TemplateStatus = 'active' | 'on_review' | 'in_development' | 'inactive' | 'archived';
 export type TemplateType = 'technical' | 'organizational';
