@@ -1,1 +1,9 @@
-{}
+{
+  "arch-templates": "https://functions.poehali.dev/20c2f5e5-2e8b-40fa-8ffb-e978290332d7",
+  "hardening": "https://functions.poehali.dev/c7ab52b7-af0c-44db-9d2e-3ee901e15e55",
+  "decisions": "https://functions.poehali.dev/52d789a0-323c-4a86-b298-c509d0e606f7",
+  "requirements": "https://functions.poehali.dev/14afbc19-4fdc-4803-b634-10174f2a44dd",
+  "technologies": "https://functions.poehali.dev/b63791b9-6309-4098-aec2-6847a4871e31",
+  "tech-domains": "https://functions.poehali.dev/9fa81744-e3d1-4877-aad6-fe08b57027cd",
+  "org-domains": "https://functions.poehali.dev/5f3f729b-229c-4030-a076-3c99047514cb"
+}

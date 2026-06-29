@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "GET list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "POST create",
+      "method": "POST",
+      "path": "/",
+      "body": "{\"name\": \"React\", \"owner\": \"Frontend Team\", \"status\": \"active\", \"description\": \"UI библиотека\", \"tags\": [\"frontend\", \"javascript\"]}",
+      "expectedStatus": 201,
+      "expectedBody": {"name": "React", "version": "1.0"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET tags suggest",
+      "method": "GET",
+      "path": "/?tags_suggest=front",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

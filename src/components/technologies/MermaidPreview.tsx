@@ -1,38 +1,33 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
+import mermaid from 'mermaid';
 import Icon from '@/components/ui/icon';
 
 type MermaidTheme = 'dark' | 'default' | 'forest' | 'neutral' | 'base';
 
-let mermaidInitialized = false;
-
-async function getMermaid() {
-  const { default: mermaid } = await import('mermaid');
-  if (!mermaidInitialized) {
-    mermaidInitialized = true;
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'dark',
-      securityLevel: 'loose',
-      flowchart:   { useMaxWidth: false, htmlLabels: true },
-      sequence:    { useMaxWidth: false },
-      gantt:       { useMaxWidth: false },
-      journey:     { useMaxWidth: false },
-      timeline:    { useMaxWidth: false },
-      er:          { useMaxWidth: false },
-      pie:         { useMaxWidth: false },
-      mindmap:     { useMaxWidth: false },
-      sankey:      { useMaxWidth: false },
-      block:       { useMaxWidth: false },
-      packet:      { useMaxWidth: false },
-      gitGraph:    { useMaxWidth: false },
-      xychart:     { useMaxWidth: false },
-      quadrantChart: { useMaxWidth: false },
-      requirementDiagram: { useMaxWidth: false },
-    });
-  }
-  return mermaid;
-}
+// Инициализируем один раз — все типы диаграмм поддерживаются автоматически
+// (повторный initialize() сбрасывает регистрацию модулей)
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+  // Разрешаем useMaxWidth=false для всех типов, чтобы схема не обрезалась
+  flowchart:   { useMaxWidth: false, htmlLabels: true },
+  sequence:    { useMaxWidth: false },
+  gantt:       { useMaxWidth: false },
+  journey:     { useMaxWidth: false },
+  timeline:    { useMaxWidth: false },
+  er:          { useMaxWidth: false },
+  pie:         { useMaxWidth: false },
+  mindmap:     { useMaxWidth: false },
+  sankey:      { useMaxWidth: false },
+  block:       { useMaxWidth: false },
+  packet:      { useMaxWidth: false },
+  gitGraph:    { useMaxWidth: false },
+  xychart:     { useMaxWidth: false },
+  quadrantChart: { useMaxWidth: false },
+  requirementDiagram: { useMaxWidth: false },
+});
 
 const THEMES: { value: MermaidTheme; label: string }[] = [
   { value: 'dark',    label: 'Тёмная'    },
@@ -230,7 +225,9 @@ export default function MermaidPreview({ code, title, className = '', compact, s
     const renderIdx = ++renderCount.current;
     setError('');
     try {
-      const mermaid = await getMermaid();
+      // Тему передаём через %%init%% директиву прямо в код схемы —
+      // это единственный стабильный способ смены темы в mermaid v11
+      // без повторного initialize (который сбрасывает реестр диаграмм)
       const themeDirective = `%%{init: {'theme': '${currentTheme}'}}%%\n`;
       const trimmed = currentCode.trimStart();
       const codeWithTheme = trimmed.startsWith('%%')
