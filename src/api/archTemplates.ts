@@ -1,121 +1,58 @@
-//const BASE = import.meta.env.VITE_ARCH_TEMPLATES_URL as string;
-const BASE =
-  "https://functions.poehali.dev/20c2f5e5-2e8b-40fa-8ffb-e978290332d7";
+const BASE = 'https://functions.poehali.dev/20c2f5e5-2e8b-40fa-8ffb-e978290332d7';
 
-export type TemplateStatus =
-  | "active"
-  | "on_review"
-  | "in_development"
-  | "inactive"
-  | "archived";
-export type TemplateType = "technical" | "organizational";
+export type TemplateStatus = 'active' | 'on_review' | 'in_development' | 'inactive' | 'archived';
+export type TemplateType = 'technical' | 'organizational';
 
 export const STATUS_OPTIONS: { value: TemplateStatus; label: string }[] = [
-  { value: "active", label: "Активен" },
-  { value: "on_review", label: "На ревью" },
-  { value: "in_development", label: "В разработке" },
-  { value: "inactive", label: "Не активен" },
-  { value: "archived", label: "В архиве" },
+  { value: 'active',         label: 'Активен'      },
+  { value: 'on_review',      label: 'На ревью'     },
+  { value: 'in_development', label: 'В разработке' },
+  { value: 'inactive',       label: 'Не активен'   },
+  { value: 'archived',       label: 'В архиве'     },
 ];
 
 export const TYPE_OPTIONS: { value: TemplateType; label: string }[] = [
-  { value: "technical", label: "Техническое" },
-  { value: "organizational", label: "Организационное" },
+  { value: 'technical',      label: 'Техническое'      },
+  { value: 'organizational', label: 'Организационное'  },
 ];
 
-export interface TagRef {
-  id: number;
-  name: string;
-}
-export interface TemplateVersion {
-  id: number;
-  version: string;
-  changeNote: string;
-  changedAt: string;
-}
-export interface TemplateRef {
-  id: string;
-  name: string;
-  templateType: TemplateType;
-  typeLabel: string;
-  status: TemplateStatus;
-  statusLabel: string;
-}
-export interface TechRef {
-  id: string;
-  name: string;
-  status: string;
-  statusLabel: string;
-}
-export interface DecisionRef {
-  id: string;
-  name: string;
-  decisionType: string;
-  typeLabel: string;
-  status: string;
-  statusLabel: string;
-}
-export interface MermaidDiagram {
-  id: number;
-  title: string;
-  code: string;
-  createdAt: string;
-  updatedAt: string;
-}
-export interface TemplateFile {
-  id: number;
-  filename: string;
-  s3Key: string;
-  contentType: string;
-  sizeBytes: number;
-  uploadedAt: string;
-  url: string;
-}
+export interface TagRef       { id: number; name: string }
+export interface TemplateVersion { id: number; version: string; changeNote: string; changedAt: string }
+export interface TemplateRef  { id: string; name: string; templateType: TemplateType; typeLabel: string; status: TemplateStatus; statusLabel: string }
+export interface TechRef      { id: string; name: string; status: string; statusLabel: string }
+export interface DecisionRef  { id: string; name: string; decisionType: string; typeLabel: string; status: string; statusLabel: string }
+export interface MermaidDiagram { id: number; title: string; code: string; createdAt: string; updatedAt: string }
+export interface TemplateFile { id: number; filename: string; s3Key: string; contentType: string; sizeBytes: number; uploadedAt: string; url: string }
 
-export type EnvStatus = "required" | "not_required" | "conditional";
-export type EnvName = "prod" | "prodlike" | "stage" | "test" | "dev";
+export type EnvStatus = 'required' | 'not_required' | 'conditional';
+export type EnvName = 'prod' | 'prodlike' | 'stage' | 'test' | 'dev';
 export type EnvStatusMap = Record<EnvName, EnvStatus>;
-export interface EnvStatusDual {
-  noIod: EnvStatusMap;
-  iod: EnvStatusMap;
-}
+export interface EnvStatusDual { noIod: EnvStatusMap; iod: EnvStatusMap; }
 
 export const ENVS: { key: EnvName; label: string }[] = [
-  { key: "prod", label: "Prod" },
-  { key: "prodlike", label: "ProdLike" },
-  { key: "stage", label: "Stage" },
-  { key: "test", label: "Test" },
-  { key: "dev", label: "Dev" },
+  { key: 'prod',     label: 'Prod'     },
+  { key: 'prodlike', label: 'ProdLike' },
+  { key: 'stage',    label: 'Stage'    },
+  { key: 'test',     label: 'Test'     },
+  { key: 'dev',      label: 'Dev'      },
 ];
 
 export interface RequirementRef {
-  id: string;
-  shortDesc: string;
-  status: string;
-  techId: string;
-  techName: string;
-  source: string;
+  id: string; shortDesc: string; status: string;
+  techId: string; techName: string; source: string;
   hardeningId?: string | null;
   envStatus?: EnvStatusDual;
 }
 export interface RequirementDomainGroup {
-  domainId: string | null;
-  domainName: string;
-  requirements: RequirementRef[];
+  domainId: string | null; domainName: string; requirements: RequirementRef[];
 }
 
 export interface ArchTemplate {
-  id: string;
-  name: string;
-  owner: string;
-  status: TemplateStatus;
-  statusLabel: string;
-  templateType: TemplateType;
-  typeLabel: string;
-  description: string;
-  version: string;
-  createdAt: string;
-  updatedAt: string;
+  id: string; name: string; owner: string;
+  status: TemplateStatus; statusLabel: string;
+  templateType: TemplateType; typeLabel: string;
+  description: string; version: string;
+  createdAt: string; updatedAt: string;
   tags: TagRef[];
 }
 
@@ -130,12 +67,9 @@ export interface ArchTemplateDetail extends ArchTemplate {
 }
 
 export interface ArchTemplateFormData {
-  name: string;
-  owner: string;
-  status: TemplateStatus;
-  templateType: TemplateType;
-  description: string;
-  tags: string[];
+  name: string; owner: string;
+  status: TemplateStatus; templateType: TemplateType;
+  description: string; tags: string[];
   relatedTemplateIds: string[];
   technologyIds: string[];
   decisionIds: string[];
@@ -145,12 +79,12 @@ export interface ArchTemplateFormData {
 async function req<T>(url: string, opts?: RequestInit): Promise<T> {
   const r = await fetch(url, opts);
   const data = await r.json();
-  if (!r.ok)
-    throw new Error((data as { error?: string }).error ?? `HTTP ${r.status}`);
+  if (!r.ok) throw new Error((data as { error?: string }).error ?? `HTTP ${r.status}`);
   return data as T;
 }
 
-export const fetchArchTemplates = () => req<ArchTemplate[]>(BASE);
+export const fetchArchTemplates = () =>
+  req<ArchTemplate[]>(BASE);
 
 export const fetchArchTemplate = (id: string) =>
   req<ArchTemplateDetail>(`${BASE}?id=${encodeURIComponent(id)}`);
@@ -172,23 +106,13 @@ export interface ExportRequirementGroup {
   domainName: string;
   requirements: ExportRequirement[];
 }
-export interface ExternalLink {
-  id: number;
-  url: string;
-  label: string;
-}
+export interface ExternalLink { id: number; url: string; label: string; }
 export interface ExportData {
-  id: string;
-  name: string;
-  owner: string;
-  status: string;
-  statusLabel: string;
-  templateType: string;
-  typeLabel: string;
-  description: string;
-  version: string;
-  createdAt: string;
-  updatedAt: string;
+  id: string; name: string; owner: string;
+  status: string; statusLabel: string;
+  templateType: string; typeLabel: string;
+  description: string; version: string;
+  createdAt: string; updatedAt: string;
   tags: TagRef[];
   technologies: TechRef[];
   decisions: DecisionRef[];
@@ -217,46 +141,38 @@ export const fetchDecisionsSuggest = (q: string) =>
 
 export const createArchTemplate = (data: ArchTemplateFormData) =>
   req<ArchTemplate>(BASE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
 export const updateArchTemplate = (id: string, data: ArchTemplateFormData) =>
   req<ArchTemplate>(BASE, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...data, id }),
   });
 
 export const addMermaid = (template_id: string, title: string, code: string) =>
   req<MermaidDiagram>(`${BASE}?action=add_mermaid`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ template_id, title, code }),
   });
 
 export const updateMermaid = (id: number, title: string, code: string) =>
   req<MermaidDiagram>(`${BASE}?action=update_mermaid`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, title, code }),
   });
 
-export const uploadFile = async (
-  template_id: string,
-  file: File,
-): Promise<TemplateFile> => {
+export const uploadFile = async (template_id: string, file: File): Promise<TemplateFile> => {
   const buf = await file.arrayBuffer();
   const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
   return req<TemplateFile>(`${BASE}?action=upload_file`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      template_id,
-      filename: file.name,
-      content_type: file.type,
-      data_base64: b64,
-    }),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ template_id, filename: file.name, content_type: file.type, data_base64: b64 }),
   });
 };
