@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_HARDENING_URL as string;
+const BASE = 'https://functions.poehali.dev/c7ab52b7-af0c-44db-9d2e-3ee901e15e55';
 
 export type HardeningStatus = 'active' | 'in_development' | 'inactive' | 'archived';
 
