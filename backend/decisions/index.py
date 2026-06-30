@@ -329,10 +329,24 @@ def handler(event: dict, context) -> dict:
                         """
                     )
                     rows = cur.fetchall()
+                    dec_ids = [r[0] for r in rows]
+                    tags_map = {}
+                    if dec_ids:
+                        cur.execute(
+                            """
+                            SELECT dt.decision_id, t.id, t.name
+                            FROM decision_tags dt
+                            JOIN tags t ON t.id = dt.tag_id
+                            WHERE dt.decision_id = ANY(%s)
+                            ORDER BY t.name
+                            """,
+                            (dec_ids,),
+                        )
+                        for dt_row in cur.fetchall():
+                            tags_map.setdefault(dt_row[0], []).append({"id": dt_row[1], "name": dt_row[2]})
                     result = []
                     for r in rows:
-                        tags = get_tags(cur, r[0])
-                        result.append(row_to_dict(r, tags, r[8] or "1.0"))
+                        result.append(row_to_dict(r, tags_map.get(r[0], []), r[8] or "1.0"))
                     return ok(result)
 
                 # ── GET single ────────────────────────────────────────────
