@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { fetchArchTemplates, ArchTemplate, STATUS_OPTIONS, TYPE_OPTIONS } from '@/api/archTemplates';
 import ArchTemplateExportModal from './ArchTemplateExportModal';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import RefreshControl from '@/components/ui/RefreshControl';
 
 const STATUS_STYLE: Record<string, string> = {
   active:         'bg-success/10 text-success',
@@ -29,12 +31,17 @@ export default function ArchTemplateList() {
   const [sortCol, setSortCol] = useState<'id' | 'name' | 'templateType' | 'owner' | 'status' | 'version'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     fetchArchTemplates()
       .then(setItems)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const { intervalSeconds, setIntervalSeconds } = useAutoRefresh('arch-templates', load);
 
   const handleSort = (col: typeof sortCol) => {
     if (sortCol === col) { setSortDir((d) => d === 'asc' ? 'desc' : 'asc'); }
@@ -89,6 +96,11 @@ export default function ArchTemplateList() {
                 </p>
               </div>
             </div>
+            <RefreshControl
+              intervalSeconds={intervalSeconds}
+              onIntervalChange={setIntervalSeconds}
+              onRefreshNow={load}
+            />
             <button
               type="button"
               onClick={() => navigate('/templates/new')}

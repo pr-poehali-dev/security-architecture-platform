@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { fetchDecisions, Decision, STATUS_OPTIONS, TYPE_OPTIONS } from '@/api/decisions';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import RefreshControl from '@/components/ui/RefreshControl';
 
 const STATUS_STYLE: Record<string, string> = {
   active:         'bg-success/10 text-success',
@@ -24,12 +26,17 @@ export default function DecisionList() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     fetchDecisions()
       .then(setItems)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const { intervalSeconds, setIntervalSeconds } = useAutoRefresh('decisions', load);
 
   const filtered = items.filter((d) => {
     const q = search.toLowerCase();
@@ -65,12 +72,19 @@ export default function DecisionList() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/solutions/new')}
-              className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
-            >
-              <Icon name="Plus" size={16} /> Добавить решение
-            </button>
+            <div className="flex items-center gap-2">
+              <RefreshControl
+                intervalSeconds={intervalSeconds}
+                onIntervalChange={setIntervalSeconds}
+                onRefreshNow={load}
+              />
+              <button
+                onClick={() => navigate('/solutions/new')}
+                className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
+              >
+                <Icon name="Plus" size={16} /> Добавить решение
+              </button>
+            </div>
           </div>
         </div>
       </div>

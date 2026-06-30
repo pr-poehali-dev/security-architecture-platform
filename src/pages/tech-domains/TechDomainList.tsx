@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { fetchTechDomains, TechDomain, STATUS_OPTIONS } from '@/api/techDomains';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import RefreshControl from '@/components/ui/RefreshControl';
 
 const STATUS_STYLE: Record<string, string> = {
   active:         'bg-success/10 text-success',
@@ -18,12 +20,17 @@ export default function TechDomainList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     fetchTechDomains()
       .then(setItems)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const { intervalSeconds, setIntervalSeconds } = useAutoRefresh('tech-domains', load);
 
   const filtered = items.filter((d) => {
     const q = search.toLowerCase();
@@ -57,12 +64,19 @@ export default function TechDomainList() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/tech-domain/new')}
-              className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
-            >
-              <Icon name="Plus" size={16} /> Создать домен
-            </button>
+            <div className="flex items-center gap-2">
+              <RefreshControl
+                intervalSeconds={intervalSeconds}
+                onIntervalChange={setIntervalSeconds}
+                onRefreshNow={load}
+              />
+              <button
+                onClick={() => navigate('/tech-domain/new')}
+                className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
+              >
+                <Icon name="Plus" size={16} /> Создать домен
+              </button>
+            </div>
           </div>
         </div>
       </div>

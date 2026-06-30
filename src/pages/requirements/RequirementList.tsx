@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import {
@@ -7,6 +7,8 @@ import {
   STATUS_OPTIONS,
   TYPE_OPTIONS,
 } from "@/api/requirements";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import RefreshControl from "@/components/ui/RefreshControl";
 
 const STATUS_STYLE: Record<string, string> = {
   active: "bg-success/10 text-success",
@@ -31,12 +33,17 @@ export default function RequirementList() {
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     fetchRequirements()
       .then(setItems)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const { intervalSeconds, setIntervalSeconds } = useAutoRefresh('requirements', load);
 
   const filtered = items.filter((r) => {
     const q = search.toLowerCase();
@@ -64,13 +71,20 @@ export default function RequirementList() {
             {items.length} требований в реестре
           </p>
         </div>
-        <Link
-          to="/requirements/new"
-          className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
-        >
-          <Icon name="Plus" size={16} />
-          Добавить требование
-        </Link>
+        <div className="flex items-center gap-2">
+          <RefreshControl
+            intervalSeconds={intervalSeconds}
+            onIntervalChange={setIntervalSeconds}
+            onRefreshNow={load}
+          />
+          <Link
+            to="/requirements/new"
+            className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+          >
+            <Icon name="Plus" size={16} />
+            Добавить требование
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
