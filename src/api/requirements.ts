@@ -1,34 +1,11 @@
-//const BASE = 'https://functions.poehali.dev/14afbc19-4fdc-4803-b634-10174f2a44dd';
+const BASE = 'https://functions.poehali.dev/14afbc19-4fdc-4803-b634-10174f2a44dd';
 
-const BASE =
-  "https://functions.poehali.dev/c054cb12-d6ce-4749-859d-f193c5dbbe6c";
+export type ReqStatus = 'active' | 'in_development' | 'inactive' | 'archived';
+export type ReqType = 'technical' | 'functional' | 'non_functional' | 'organizational';
 
-//const BASE = 'http://localhost:8000/requirements';
-
-//const BASE = import.meta.env.VITE_REQUIREMENTS_URL as string;
-
-export type ReqStatus = "active" | "in_development" | "inactive" | "archived";
-export type ReqType =
-  | "technical"
-  | "functional"
-  | "non_functional"
-  | "organizational";
-
-export interface TagRef {
-  id: number;
-  name: string;
-}
-export interface TechRef {
-  id: string;
-  name: string;
-  status: string;
-}
-export interface TechDomainRef {
-  id: string;
-  name: string;
-  status: string;
-  statusLabel: string;
-}
+export interface TagRef { id: number; name: string }
+export interface TechRef { id: string; name: string; status: string }
+export interface TechDomainRef { id: string; name: string; status: string; statusLabel: string }
 
 export interface RequirementVersion {
   id: number;
@@ -83,28 +60,28 @@ export interface RequirementFormData {
 }
 
 export const STATUS_OPTIONS: { value: ReqStatus; label: string }[] = [
-  { value: "active", label: "Активен" },
-  { value: "in_development", label: "В разработке" },
-  { value: "inactive", label: "Не активен" },
-  { value: "archived", label: "В архиве" },
+  { value: 'active',         label: 'Активен'      },
+  { value: 'in_development', label: 'В разработке' },
+  { value: 'inactive',       label: 'Не активен'   },
+  { value: 'archived',       label: 'В архиве'     },
 ];
 
 export const TYPE_OPTIONS: { value: ReqType; label: string }[] = [
-  { value: "technical", label: "Технические" },
-  { value: "functional", label: "Функциональные" },
-  { value: "non_functional", label: "Не функциональные" },
-  { value: "organizational", label: "Организационный" },
+  { value: 'technical',      label: 'Технические'       },
+  { value: 'functional',     label: 'Функциональные'    },
+  { value: 'non_functional', label: 'Не функциональные' },
+  { value: 'organizational', label: 'Организационный'   },
 ];
 
 export async function fetchRequirements(): Promise<Requirement[]> {
   const res = await fetch(BASE);
-  if (!res.ok) throw new Error("Ошибка загрузки");
+  if (!res.ok) throw new Error('Ошибка загрузки');
   return res.json();
 }
 
 export async function fetchRequirement(id: string): Promise<RequirementDetail> {
   const res = await fetch(`${BASE}?id=${encodeURIComponent(id)}`);
-  if (!res.ok) throw new Error("Требование не найдено");
+  if (!res.ok) throw new Error('Требование не найдено');
   return res.json();
 }
 
@@ -120,43 +97,34 @@ export async function fetchTechSuggest(query: string): Promise<TechRef[]> {
   return res.json();
 }
 
-export async function fetchTechDomainSuggest(
-  query: string,
-): Promise<TechDomainRef[]> {
-  const res = await fetch(
-    `${BASE}?tech_domain_suggest=${encodeURIComponent(query)}`,
-  );
+export async function fetchTechDomainSuggest(query: string): Promise<TechDomainRef[]> {
+  const res = await fetch(`${BASE}?tech_domain_suggest=${encodeURIComponent(query)}`);
   if (!res.ok) return [];
   return res.json();
 }
 
-export async function createRequirement(
-  data: RequirementFormData,
-): Promise<Requirement> {
+export async function createRequirement(data: RequirementFormData): Promise<Requirement> {
   const res = await fetch(BASE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || "Ошибка создания");
+    throw new Error((e as { error?: string }).error || 'Ошибка создания');
   }
   return res.json();
 }
 
-export async function updateRequirement(
-  id: string,
-  data: RequirementFormData,
-): Promise<Requirement> {
+export async function updateRequirement(id: string, data: RequirementFormData): Promise<Requirement> {
   const res = await fetch(BASE, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, ...data }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || "Ошибка обновления");
+    throw new Error((e as { error?: string }).error || 'Ошибка обновления');
   }
   return res.json();
 }

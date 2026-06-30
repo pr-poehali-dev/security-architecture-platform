@@ -1,38 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 export type NavCounts = Record<string, number>;
 
-const CACHE_KEY = "nav_counts";
+const CACHE_KEY = 'nav_counts';
 const CACHE_TTL = 60_000;
 
-interface CacheEntry {
-  counts: NavCounts;
-  ts: number;
-}
+interface CacheEntry { counts: NavCounts; ts: number }
 
 const ENDPOINTS: Record<string, string> = {
-  //'org-domain':   'https://functions.poehali.dev/5f3f729b-229c-4030-a076-3c99047514cb',
-  //'tech-domain':  'https://functions.poehali.dev/9fa81744-e3d1-4877-aad6-fe08b57027cd',
-  //'technologies': 'https://functions.poehali.dev/b63791b9-6309-4098-aec2-6847a4871e31',
-  //'requirements': 'https://functions.poehali.dev/14afbc19-4fdc-4803-b634-10174f2a44dd',
-  //'solutions':    'https://functions.poehali.dev/52d789a0-323c-4a86-b298-c509d0e606f7',
-  //'hardening':    'https://functions.poehali.dev/c7ab52b7-af0c-44db-9d2e-3ee901e15e55',
-  //'templates':    'https://functions.poehali.dev/20c2f5e5-2e8b-40fa-8ffb-e978290332d7',
-
-  "org-domain":
-    "https://functions.poehali.dev/a334a8dd-07b8-4b79-a9ec-f68ac6534563",
-  "tech-domain":
-    "https://functions.poehali.dev/cb654e0e-1e92-48b1-b5eb-5da8c21feda8",
-  technologies:
-    "https://functions.poehali.dev/ca02a6ed-b1dd-4fd2-8be6-99f80f37f1f1",
-  requirements:
-    "https://functions.poehali.dev/c054cb12-d6ce-4749-859d-f193c5dbbe6c",
-  solutions:
-    "https://functions.poehali.dev/4fdf5121-01c9-4ac7-9cca-0c8c17829d68",
-  hardening:
-    "https://functions.poehali.dev/9f7301bc-bb7a-4185-9378-84468807984b",
-  templates:
-    "https://functions.poehali.dev/b15826a2-ecbe-459a-9bd1-1517629d5f29",
+  'org-domain':   'https://functions.poehali.dev/5f3f729b-229c-4030-a076-3c99047514cb',
+  'tech-domain':  'https://functions.poehali.dev/9fa81744-e3d1-4877-aad6-fe08b57027cd',
+  'technologies': 'https://functions.poehali.dev/b63791b9-6309-4098-aec2-6847a4871e31',
+  'requirements': 'https://functions.poehali.dev/14afbc19-4fdc-4803-b634-10174f2a44dd',
+  'solutions':    'https://functions.poehali.dev/52d789a0-323c-4a86-b298-c509d0e606f7',
+  'hardening':    'https://functions.poehali.dev/c7ab52b7-af0c-44db-9d2e-3ee901e15e55',
+  'templates':    'https://functions.poehali.dev/20c2f5e5-2e8b-40fa-8ffb-e978290332d7',
 };
 
 function readCache(): NavCounts | null {
@@ -54,17 +36,11 @@ function writeCache(counts: NavCounts) {
   try {
     const entry: CacheEntry = { counts, ts: Date.now() };
     sessionStorage.setItem(CACHE_KEY, JSON.stringify(entry));
-  } catch {
-    /* */
-  }
+  } catch { /* */ }
 }
 
 function clearCache() {
-  try {
-    sessionStorage.removeItem(CACHE_KEY);
-  } catch {
-    /* */
-  }
+  try { sessionStorage.removeItem(CACHE_KEY); } catch { /* */ }
 }
 
 export function useNavCounts(): NavCounts {
@@ -81,12 +57,7 @@ export function useNavCounts(): NavCounts {
         fetch(url, { signal: AbortSignal.timeout(8000) })
           .then((r) => {
             if (!r.ok) return [key, null] as const;
-            return r
-              .json()
-              .then(
-                (data: unknown) =>
-                  [key, Array.isArray(data) ? data.length : null] as const,
-              );
+            return r.json().then((data: unknown) => [key, Array.isArray(data) ? data.length : null] as const);
           })
           .catch(() => [key, null] as const),
       ),
@@ -113,9 +84,7 @@ export function useNavCounts(): NavCounts {
       setCounts(next);
     });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   return counts;
