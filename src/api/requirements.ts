@@ -1,5 +1,3 @@
-//const BASE = 'https://functions.poehali.dev/14afbc19-4fdc-4803-b634-10174f2a44dd';
-
 const BASE =
   "https://functions.poehali.dev/c054cb12-d6ce-4749-859d-f193c5dbbe6c";
 
