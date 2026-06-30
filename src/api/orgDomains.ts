@@ -1,6 +1,17 @@
-const BASE = 'https://functions.poehali.dev/5f3f729b-229c-4030-a076-3c99047514cb';
+//const BASE = 'https://functions.poehali.dev/5f3f729b-229c-4030-a076-3c99047514cb';
 
-export type OrgDomainStatus = 'active' | 'in_development' | 'inactive' | 'archived';
+const BASE =
+  "https://functions.poehali.dev/a334a8dd-07b8-4b79-a9ec-f68ac6534563";
+
+//const BASE = 'http://localhost:8000/org-domains';
+
+//const BASE = import.meta.env.VITE_ORG_DOMAINS_URL as string;
+
+export type OrgDomainStatus =
+  | "active"
+  | "in_development"
+  | "inactive"
+  | "archived";
 
 export interface OrgDomain {
   id: string;
@@ -39,46 +50,49 @@ export interface OrgDomainForm {
 }
 
 export const STATUS_OPTIONS: { value: OrgDomainStatus; label: string }[] = [
-  { value: 'active',        label: 'Активен'       },
-  { value: 'in_development', label: 'В разработке'  },
-  { value: 'inactive',      label: 'Не активен'    },
-  { value: 'archived',      label: 'В архиве'      },
+  { value: "active", label: "Активен" },
+  { value: "in_development", label: "В разработке" },
+  { value: "inactive", label: "Не активен" },
+  { value: "archived", label: "В архиве" },
 ];
 
 export async function fetchOrgDomains(): Promise<OrgDomain[]> {
   const res = await fetch(BASE);
-  if (!res.ok) throw new Error('Ошибка загрузки');
+  if (!res.ok) throw new Error("Ошибка загрузки");
   return res.json();
 }
 
 export async function fetchOrgDomain(id: string): Promise<OrgDomainDetail> {
   const res = await fetch(`${BASE}?id=${encodeURIComponent(id)}`);
-  if (!res.ok) throw new Error('Домен не найден');
+  if (!res.ok) throw new Error("Домен не найден");
   return res.json();
 }
 
 export async function createOrgDomain(data: OrgDomainForm): Promise<OrgDomain> {
   const res = await fetch(BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || 'Ошибка создания');
+    throw new Error(e.error || "Ошибка создания");
   }
   return res.json();
 }
 
-export async function updateOrgDomain(id: string, data: OrgDomainForm): Promise<OrgDomain> {
+export async function updateOrgDomain(
+  id: string,
+  data: OrgDomainForm,
+): Promise<OrgDomain> {
   const res = await fetch(BASE, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, ...data }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || 'Ошибка обновления');
+    throw new Error(e.error || "Ошибка обновления");
   }
   return res.json();
 }

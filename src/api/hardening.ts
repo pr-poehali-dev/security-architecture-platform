@@ -1,8 +1,22 @@
-const BASE = import.meta.env.VITE_HARDENING_URL as string;
+//const BASE = 'https://functions.poehali.dev/c7ab52b7-af0c-44db-9d2e-3ee901e15e55';
 
-export type HardeningStatus = 'active' | 'in_development' | 'inactive' | 'archived';
+const BASE =
+  "https://functions.poehali.dev/9f7301bc-bb7a-4185-9378-84468807984b";
 
-export interface TagRef { id: number; name: string }
+//const BASE = 'http://localhost:8000/hardening';
+
+//const BASE = import.meta.env.VITE_HARDENING_URL as string;
+
+export type HardeningStatus =
+  | "active"
+  | "in_development"
+  | "inactive"
+  | "archived";
+
+export interface TagRef {
+  id: number;
+  name: string;
+}
 
 export interface HardeningVersion {
   id: number;
@@ -64,21 +78,21 @@ export interface HardeningFormData {
 }
 
 export const STATUS_OPTIONS: { value: HardeningStatus; label: string }[] = [
-  { value: 'active',         label: 'Активен'      },
-  { value: 'in_development', label: 'В разработке' },
-  { value: 'inactive',       label: 'Не активен'   },
-  { value: 'archived',       label: 'В архиве'     },
+  { value: "active", label: "Активен" },
+  { value: "in_development", label: "В разработке" },
+  { value: "inactive", label: "Не активен" },
+  { value: "archived", label: "В архиве" },
 ];
 
 export async function fetchHardenings(): Promise<Hardening[]> {
   const res = await fetch(BASE);
-  if (!res.ok) throw new Error('Ошибка загрузки');
+  if (!res.ok) throw new Error("Ошибка загрузки");
   return res.json();
 }
 
 export async function fetchHardening(id: string): Promise<HardeningDetail> {
   const res = await fetch(`${BASE}?id=${encodeURIComponent(id)}`);
-  if (!res.ok) throw new Error('Карточка не найдена');
+  if (!res.ok) throw new Error("Карточка не найдена");
   return res.json();
 }
 
@@ -88,34 +102,43 @@ export async function fetchTagsSuggest(query: string): Promise<TagRef[]> {
   return res.json();
 }
 
-export async function fetchSolutionsSuggest(query: string): Promise<SolutionRef[]> {
-  const res = await fetch(`${BASE}?solutions_suggest=${encodeURIComponent(query)}`);
+export async function fetchSolutionsSuggest(
+  query: string,
+): Promise<SolutionRef[]> {
+  const res = await fetch(
+    `${BASE}?solutions_suggest=${encodeURIComponent(query)}`,
+  );
   if (!res.ok) return [];
   return res.json();
 }
 
-export async function createHardening(data: HardeningFormData): Promise<Hardening> {
+export async function createHardening(
+  data: HardeningFormData,
+): Promise<Hardening> {
   const res = await fetch(BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || 'Ошибка создания');
+    throw new Error((e as { error?: string }).error || "Ошибка создания");
   }
   return res.json();
 }
 
-export async function updateHardening(id: string, data: HardeningFormData): Promise<Hardening> {
+export async function updateHardening(
+  id: string,
+  data: HardeningFormData,
+): Promise<Hardening> {
   const res = await fetch(BASE, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, ...data }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || 'Ошибка обновления');
+    throw new Error((e as { error?: string }).error || "Ошибка обновления");
   }
   return res.json();
 }
@@ -131,8 +154,8 @@ export interface ReqImage {
   url: string;
 }
 
-export type EnvName = 'prod' | 'prodlike' | 'stage' | 'test' | 'dev';
-export type EnvStatus = 'required' | 'not_required' | 'conditional';
+export type EnvName = "prod" | "prodlike" | "stage" | "test" | "dev";
+export type EnvStatus = "required" | "not_required" | "conditional";
 export type EnvStatusMap = Record<EnvName, EnvStatus>;
 
 export interface EnvStatusDual {
@@ -141,27 +164,30 @@ export interface EnvStatusDual {
 }
 
 export const ENVS: { key: EnvName; label: string }[] = [
-  { key: 'prod',     label: 'Prod'     },
-  { key: 'prodlike', label: 'ProdLike' },
-  { key: 'stage',    label: 'Stage'    },
-  { key: 'test',     label: 'Test'     },
-  { key: 'dev',      label: 'Dev'      },
+  { key: "prod", label: "Prod" },
+  { key: "prodlike", label: "ProdLike" },
+  { key: "stage", label: "Stage" },
+  { key: "test", label: "Test" },
+  { key: "dev", label: "Dev" },
 ];
 
 export const ENV_STATUS_OPTIONS: { value: EnvStatus; label: string }[] = [
-  { value: 'required',     label: 'Обязательно'  },
-  { value: 'conditional',  label: 'Условие'      },
-  { value: 'not_required', label: 'Не требуется' },
+  { value: "required", label: "Обязательно" },
+  { value: "conditional", label: "Условие" },
+  { value: "not_required", label: "Не требуется" },
 ];
 
 export const DEFAULT_ENV_STATUS: EnvStatusMap = {
-  prod: 'not_required', prodlike: 'not_required', stage: 'not_required',
-  test: 'not_required', dev: 'not_required',
+  prod: "not_required",
+  prodlike: "not_required",
+  stage: "not_required",
+  test: "not_required",
+  dev: "not_required",
 };
 
 export const DEFAULT_ENV_STATUS_DUAL: EnvStatusDual = {
   noIod: { ...DEFAULT_ENV_STATUS },
-  iod:   { ...DEFAULT_ENV_STATUS },
+  iod: { ...DEFAULT_ENV_STATUS },
 };
 
 export interface ReqContent {
@@ -171,48 +197,73 @@ export interface ReqContent {
   envStatus: EnvStatusDual;
 }
 
-export async function fetchReqContent(hardeningId: string, requirementId: string): Promise<ReqContent> {
-  const res = await fetch(`${BASE}?req_content&hid=${encodeURIComponent(hardeningId)}&rid=${encodeURIComponent(requirementId)}`);
-  if (!res.ok) return { markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS_DUAL } };
+export async function fetchReqContent(
+  hardeningId: string,
+  requirementId: string,
+): Promise<ReqContent> {
+  const res = await fetch(
+    `${BASE}?req_content&hid=${encodeURIComponent(hardeningId)}&rid=${encodeURIComponent(requirementId)}`,
+  );
+  if (!res.ok)
+    return {
+      markdown: "",
+      updatedAt: null,
+      images: [],
+      envStatus: { ...DEFAULT_ENV_STATUS_DUAL },
+    };
   return res.json();
 }
 
-export async function saveEnvStatus(hardeningId: string, requirementId: string, statuses: EnvStatusDual): Promise<EnvStatusDual> {
+export async function saveEnvStatus(
+  hardeningId: string,
+  requirementId: string,
+  statuses: EnvStatusDual,
+): Promise<EnvStatusDual> {
   const res = await fetch(`${BASE}?action=save_env_status`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ hardeningId, requirementId, statuses }),
   });
-  if (!res.ok) throw new Error('Ошибка сохранения статусов сред');
+  if (!res.ok) throw new Error("Ошибка сохранения статусов сред");
   return res.json();
 }
 
-export async function saveReqMarkdown(hardeningId: string, requirementId: string, markdown: string): Promise<ReqContent> {
+export async function saveReqMarkdown(
+  hardeningId: string,
+  requirementId: string,
+  markdown: string,
+): Promise<ReqContent> {
   const res = await fetch(`${BASE}?action=save_req_content`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ hardeningId, requirementId, markdown }),
   });
-  if (!res.ok) throw new Error('Ошибка сохранения');
+  if (!res.ok) throw new Error("Ошибка сохранения");
   return res.json();
 }
 
-export async function uploadReqImage(hardeningId: string, requirementId: string, file: File): Promise<ReqImage> {
+export async function uploadReqImage(
+  hardeningId: string,
+  requirementId: string,
+  file: File,
+): Promise<ReqImage> {
   const arrayBuffer = await file.arrayBuffer();
   const uint8 = new Uint8Array(arrayBuffer);
-  let binary = '';
-  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+  let binary = "";
+  for (let i = 0; i < uint8.length; i++)
+    binary += String.fromCharCode(uint8[i]);
   const dataBase64 = btoa(binary);
   const res = await fetch(`${BASE}?action=upload_req_image`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      hardeningId, requirementId,
+      hardeningId,
+      requirementId,
       filename: file.name,
-      contentType: file.type || 'image/png',
+      contentType: file.type || "image/png",
       dataBase64,
     }),
   });
-  if (!res.ok) throw new Error('Ошибка загрузки изображения');
+  if (!res.ok) throw new Error("Ошибка загрузки изображения");
   return res.json();
 }
