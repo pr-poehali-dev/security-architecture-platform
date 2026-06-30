@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Icon from '@/components/ui/icon';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import RefreshControl from '@/components/ui/RefreshControl';
 import MarkdownViewer from '@/components/technologies/MarkdownViewer';
 import MermaidPreview from '@/components/technologies/MermaidPreview';
 import RequirementsSection from '@/pages/arch-templates/RequirementsSection';
@@ -350,12 +352,20 @@ export default function LibraryPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (listCache) return;
+  const load = useCallback(() => {
+    listCache = null;
+    setLoading(true);
     fetchArchTemplates()
       .then(d => { listCache = d; setItems(d); })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (listCache) return;
+    load();
+  }, [load]);
+
+  const { intervalSeconds, setIntervalSeconds } = useAutoRefresh('library', load);
 
   const select = useCallback((id: string) => {
     setSelectedId(prev => prev === id ? null : id);
@@ -424,7 +434,14 @@ export default function LibraryPage() {
           <option value="">Все типы</option>
           {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        <span className="text-xs font-mono text-muted-foreground ml-auto">{filtered.length} из {items.length}</span>
+        <div className="ml-auto flex items-center gap-3">
+          <RefreshControl
+            intervalSeconds={intervalSeconds}
+            onIntervalChange={setIntervalSeconds}
+            onRefreshNow={load}
+          />
+          <span className="text-xs font-mono text-muted-foreground">{filtered.length} из {items.length}</span>
+        </div>
       </div>
 
       {/* Тело: список + панель */}
