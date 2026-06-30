@@ -1,18 +1,9 @@
-//const BASE = import.meta.env.VITE_DECISIONS_URL as string;
-const BASE =
-  "https://functions.poehali.dev/52d789a0-323c-4a86-b298-c509d0e606f7";
+const BASE = import.meta.env.VITE_DECISIONS_URL as string;
 
-export type DecisionStatus =
-  | "active"
-  | "in_development"
-  | "inactive"
-  | "archived";
-export type DecisionType = "technical" | "organizational";
+export type DecisionStatus = 'active' | 'in_development' | 'inactive' | 'archived';
+export type DecisionType = 'technical' | 'organizational';
 
-export interface TagRef {
-  id: number;
-  name: string;
-}
+export interface TagRef { id: number; name: string }
 
 export interface MermaidDiagram {
   id: number;
@@ -106,26 +97,26 @@ export interface DecisionFormData {
 }
 
 export const STATUS_OPTIONS: { value: DecisionStatus; label: string }[] = [
-  { value: "active", label: "Активен" },
-  { value: "in_development", label: "В разработке" },
-  { value: "inactive", label: "Не активен" },
-  { value: "archived", label: "В архиве" },
+  { value: 'active',         label: 'Активен'      },
+  { value: 'in_development', label: 'В разработке' },
+  { value: 'inactive',       label: 'Не активен'   },
+  { value: 'archived',       label: 'В архиве'     },
 ];
 
 export const TYPE_OPTIONS: { value: DecisionType; label: string }[] = [
-  { value: "technical", label: "Техническое" },
-  { value: "organizational", label: "Организационное" },
+  { value: 'technical',      label: 'Техническое'      },
+  { value: 'organizational', label: 'Организационное'  },
 ];
 
 export async function fetchDecisions(): Promise<Decision[]> {
   const res = await fetch(BASE);
-  if (!res.ok) throw new Error("Ошибка загрузки");
+  if (!res.ok) throw new Error('Ошибка загрузки');
   return res.json();
 }
 
 export async function fetchDecision(id: string): Promise<DecisionDetail> {
   const res = await fetch(`${BASE}?id=${encodeURIComponent(id)}`);
-  if (!res.ok) throw new Error("Решение не найдено");
+  if (!res.ok) throw new Error('Решение не найдено');
   return res.json();
 }
 
@@ -135,12 +126,8 @@ export async function fetchTagsSuggest(query: string): Promise<TagRef[]> {
   return res.json();
 }
 
-export async function fetchDecisionsSuggest(
-  query: string,
-): Promise<DecisionRef[]> {
-  const res = await fetch(
-    `${BASE}?decisions_suggest=${encodeURIComponent(query)}`,
-  );
+export async function fetchDecisionsSuggest(query: string): Promise<DecisionRef[]> {
+  const res = await fetch(`${BASE}?decisions_suggest=${encodeURIComponent(query)}`);
   if (!res.ok) return [];
   return res.json();
 }
@@ -151,87 +138,70 @@ export async function fetchTechSuggest(query: string): Promise<TechRef[]> {
   return res.json();
 }
 
-export async function createDecision(
-  data: DecisionFormData,
-): Promise<Decision> {
+export async function createDecision(data: DecisionFormData): Promise<Decision> {
   const res = await fetch(BASE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || "Ошибка создания");
+    throw new Error((e as { error?: string }).error || 'Ошибка создания');
   }
   return res.json();
 }
 
-export async function updateDecision(
-  id: string,
-  data: DecisionFormData,
-): Promise<Decision> {
+export async function updateDecision(id: string, data: DecisionFormData): Promise<Decision> {
   const res = await fetch(BASE, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, ...data }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || "Ошибка обновления");
+    throw new Error((e as { error?: string }).error || 'Ошибка обновления');
   }
   return res.json();
 }
 
-export async function addMermaid(
-  decision_id: string,
-  title: string,
-  code: string,
-): Promise<MermaidDiagram> {
+export async function addMermaid(decision_id: string, title: string, code: string): Promise<MermaidDiagram> {
   const res = await fetch(`${BASE}?action=add_mermaid`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ decision_id, title, code }),
   });
-  if (!res.ok) throw new Error("Ошибка сохранения схемы");
+  if (!res.ok) throw new Error('Ошибка сохранения схемы');
   return res.json();
 }
 
-export async function updateMermaid(
-  id: number,
-  title: string,
-  code: string,
-): Promise<MermaidDiagram> {
+export async function updateMermaid(id: number, title: string, code: string): Promise<MermaidDiagram> {
   const res = await fetch(`${BASE}?action=update_mermaid`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, title, code }),
   });
-  if (!res.ok) throw new Error("Ошибка обновления схемы");
+  if (!res.ok) throw new Error('Ошибка обновления схемы');
   return res.json();
 }
 
-export async function uploadFile(
-  decision_id: string,
-  file: File,
-): Promise<DecisionFile> {
+export async function uploadFile(decision_id: string, file: File): Promise<DecisionFile> {
   const arrayBuffer = await file.arrayBuffer();
   const uint8 = new Uint8Array(arrayBuffer);
-  let binary = "";
-  for (let i = 0; i < uint8.length; i++)
-    binary += String.fromCharCode(uint8[i]);
+  let binary = '';
+  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
   const data_base64 = btoa(binary);
 
   const res = await fetch(`${BASE}?action=upload_file`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       decision_id,
       filename: file.name,
-      content_type: file.type || "application/octet-stream",
+      content_type: file.type || 'application/octet-stream',
       data_base64,
     }),
   });
-  if (!res.ok) throw new Error("Ошибка загрузки файла");
+  if (!res.ok) throw new Error('Ошибка загрузки файла');
   return res.json();
 }
 
