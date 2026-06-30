@@ -13,19 +13,19 @@ SCHEMA="t_p84706301_security_architectur"
 echo "=== Применение миграций БД ==="
 echo "БД: $DB, пользователь: $USER"
 
-# Создаём схему если нет
+# Создаём схему и выставляем search_path на уровне БД (сохраняется для всех сессий)
 psql -v ON_ERROR_STOP=1 -U "$USER" -d "$DB" <<-SQL
     CREATE SCHEMA IF NOT EXISTS $SCHEMA;
-    SET search_path TO public, $SCHEMA;
+    ALTER DATABASE "$DB" SET search_path TO "$SCHEMA", public;
 SQL
 
-# Применяем каждый SQL-файл в алфавитном (версионном) порядке
+# Применяем каждый SQL-файл в алфавитном (версионном) порядке.
+# PGAPPNAME не используется — search_path выставлен на уровне БД.
 for f in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
     echo "--- Применяю: $(basename $f)"
     psql -v ON_ERROR_STOP=0 \
          -U "$USER" \
          -d "$DB" \
-         -c "SET search_path TO public, $SCHEMA;" \
          -f "$f" \
     && echo "    OK: $(basename $f)" \
     || echo "    ПРОПУЩЕНО (уже применено или ошибка): $(basename $f)"
