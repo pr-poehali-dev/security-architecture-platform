@@ -18,6 +18,7 @@ const ENDPOINTS: Record<string, string> = {
   //'solutions':    'https://functions.poehali.dev/52d789a0-323c-4a86-b298-c509d0e606f7',
   //'hardening':    'https://functions.poehali.dev/c7ab52b7-af0c-44db-9d2e-3ee901e15e55',
   //'templates':    'https://functions.poehali.dev/20c2f5e5-2e8b-40fa-8ffb-e978290332d7',
+
   "org-domain":
     "https://functions.poehali.dev/a334a8dd-07b8-4b79-a9ec-f68ac6534563",
   "tech-domain":
