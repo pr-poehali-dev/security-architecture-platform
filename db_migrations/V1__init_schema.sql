@@ -17,6 +17,7 @@ CREATE SEQUENCE IF NOT EXISTS technology_versions_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS technology_files_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS mermaid_diagrams_id_seq START 1;
 
+CREATE SEQUENCE IF NOT EXISTS requirement_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS requirement_versions_id_seq START 1;
 
 CREATE SEQUENCE IF NOT EXISTS decision_seq START 1;
