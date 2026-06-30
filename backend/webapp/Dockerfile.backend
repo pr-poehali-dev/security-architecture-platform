@@ -2,11 +2,43 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY backend/webapp/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Системные зависимости для psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY backend/webapp/main.py .
+# Копируем requirements.txt каждой функции
+# ВАЖНО: функции лежат в backend/<name>/, не в backend/webapp/
+COPY backend/org-domains/requirements.txt     /tmp/req_org_domains.txt
+COPY backend/tech-domains/requirements.txt    /tmp/req_tech_domains.txt
+COPY backend/technologies/requirements.txt    /tmp/req_technologies.txt
+COPY backend/requirements/requirements.txt    /tmp/req_requirements.txt
+COPY backend/decisions/requirements.txt       /tmp/req_decisions.txt
+COPY backend/hardening/requirements.txt       /tmp/req_hardening.txt
+COPY backend/arch-templates/requirements.txt  /tmp/req_arch_templates.txt
+
+RUN pip install --no-cache-dir \
+    -r /tmp/req_org_domains.txt \
+    -r /tmp/req_tech_domains.txt \
+    -r /tmp/req_technologies.txt \
+    -r /tmp/req_requirements.txt \
+    -r /tmp/req_decisions.txt \
+    -r /tmp/req_hardening.txt \
+    -r /tmp/req_arch_templates.txt \
+    flask
+
+# Копируем все функции в /app/backend/<name>/
+COPY backend/org-domains/    /app/backend/org-domains/
+COPY backend/tech-domains/   /app/backend/tech-domains/
+COPY backend/technologies/   /app/backend/technologies/
+COPY backend/requirements/   /app/backend/requirements/
+COPY backend/decisions/      /app/backend/decisions/
+COPY backend/hardening/      /app/backend/hardening/
+COPY backend/arch-templates/ /app/backend/arch-templates/
+
+# Копируем runner (лежит в backend/webapp/)
+COPY backend/webapp/local_runner.py /app/backend/local_runner.py
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "/app/backend/local_runner.py"]
