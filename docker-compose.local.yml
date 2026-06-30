@@ -11,7 +11,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-
+      - pg_data:/var/lib/postgresql/data
+      - ./db_migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sa_user -d security_arch"]
       interval: 5s
@@ -66,7 +67,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/webapp:/app/backend
+      - ./backend:/app/backend
 
   # ── Frontend: Vite dev server с HMR ─────────────────────────────────────────
   frontend:

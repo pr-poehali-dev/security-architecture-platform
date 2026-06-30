@@ -37,8 +37,8 @@ COPY backend/hardening/      /app/backend/hardening/
 COPY backend/arch-templates/ /app/backend/arch-templates/
 
 # Копируем runner (лежит в backend/webapp/)
-COPY backend/webapp/local_runner.py /app/backend/local_runner.py
+COPY backend/webapp/local_runner.py /app/backend/webapp/local_runner.py
 
 EXPOSE 8000
 
-CMD ["python", "/app/backend/local_runner.py"]
+CMD ["python", "/app/backend/webapp/local_runner.py"]

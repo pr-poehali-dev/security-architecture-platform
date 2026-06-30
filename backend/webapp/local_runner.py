@@ -24,7 +24,7 @@ from flask import Flask, Response, request
 
 app = Flask(__name__)
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(os.environ.get("FUNCTIONS_DIR", str(Path(__file__).resolve().parent.parent)))
 
 FUNCTIONS = [
     "org-domains",
