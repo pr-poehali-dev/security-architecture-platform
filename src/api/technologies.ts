@@ -1,4 +1,6 @@
-const BASE = 'https://functions.poehali.dev/b63791b9-6309-4098-aec2-6847a4871e31';
+//const BASE = import.meta.env.VITE_TECHNOLOGIES_URL as string;
+onst BASE = 'https://functions.poehali.dev/b63791b9-6309-4098-aec2-6847a4871e31';
+
 
 export type TechStatus = 'active' | 'in_development' | 'inactive' | 'archived';
 

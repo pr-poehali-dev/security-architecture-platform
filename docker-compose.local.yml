@@ -12,9 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      # init-скрипт: создаёт схему и применяет все миграции при первом старте
       - ./docker/db-init/01_migrations.sh:/docker-entrypoint-initdb.d/01_migrations.sh:ro
-      # все SQL-миграции монтируются в /migrations внутри контейнера
       - ./db_migrations:/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sa_user -d security_arch"]
@@ -65,28 +63,34 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    env_file:
-      - .env.local
+    environment:
+      DATABASE_URL: postgresql://sa_user:sa_pass@db:5432/security_arch
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      S3_ENDPOINT_URL: http://minio:9000
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/webapp:/app/backend
+      - ./backend/webapp/main.py:/app/main.py
 
-  # ── Frontend: Vite dev server с HMR ─────────────────────────────────────────
+  # ── Frontend: Nginx со статической сборкой ───────────────────────────────────
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      args:
+        VITE_ORG_DOMAINS_URL: http://localhost:8000/org-domains
+        VITE_TECH_DOMAINS_URL: http://localhost:8000/tech-domains
+        VITE_TECHNOLOGIES_URL: http://localhost:8000/technologies
+        VITE_REQUIREMENTS_URL: http://localhost:8000/requirements
+        VITE_DECISIONS_URL: http://localhost:8000/decisions
+        VITE_HARDENING_URL: http://localhost:8000/hardening
+        VITE_ARCH_TEMPLATES_URL: http://localhost:8000/arch-templates
     restart: unless-stopped
     depends_on:
       - backend
-    env_file:
-      - .env.local
     ports:
-      - "5173:5173"
-    volumes:
-      - .:/app
-      - /app/node_modules
+      - "80:80"
 
 volumes:
   pg_data:
