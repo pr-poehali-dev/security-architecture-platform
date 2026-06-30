@@ -1,6 +1,13 @@
-const BASE = import.meta.env.VITE_TECH_DOMAINS_URL as string;
+//const BASE = import.meta.env.VITE_TECH_DOMAINS_URL as string;
 
-export type TechDomainStatus = 'active' | 'in_development' | 'inactive' | 'archived';
+const BASE =
+  "https://functions.poehali.dev/9fa81744-e3d1-4877-aad6-fe08b57027cd";
+
+export type TechDomainStatus =
+  | "active"
+  | "in_development"
+  | "inactive"
+  | "archived";
 
 export interface OrgDomainRef {
   id: string;
@@ -49,52 +56,57 @@ export interface TechDomainForm {
 }
 
 export const STATUS_OPTIONS: { value: TechDomainStatus; label: string }[] = [
-  { value: 'active',         label: 'Активен'      },
-  { value: 'in_development', label: 'В разработке' },
-  { value: 'inactive',       label: 'Не активен'   },
-  { value: 'archived',       label: 'В архиве'     },
+  { value: "active", label: "Активен" },
+  { value: "in_development", label: "В разработке" },
+  { value: "inactive", label: "Не активен" },
+  { value: "archived", label: "В архиве" },
 ];
 
 export async function fetchTechDomains(): Promise<TechDomain[]> {
   const res = await fetch(BASE);
-  if (!res.ok) throw new Error('Ошибка загрузки');
+  if (!res.ok) throw new Error("Ошибка загрузки");
   return res.json();
 }
 
 export async function fetchTechDomain(id: string): Promise<TechDomainDetail> {
   const res = await fetch(`${BASE}?id=${encodeURIComponent(id)}`);
-  if (!res.ok) throw new Error('Домен не найден');
+  if (!res.ok) throw new Error("Домен не найден");
   return res.json();
 }
 
 export async function fetchOrgDomainsForPicker(): Promise<OrgDomainRef[]> {
   const res = await fetch(`${BASE}?orgList=1`);
-  if (!res.ok) throw new Error('Ошибка загрузки орг. доменов');
+  if (!res.ok) throw new Error("Ошибка загрузки орг. доменов");
   return res.json();
 }
 
-export async function createTechDomain(data: TechDomainForm): Promise<TechDomain> {
+export async function createTechDomain(
+  data: TechDomainForm,
+): Promise<TechDomain> {
   const res = await fetch(BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || 'Ошибка создания');
+    throw new Error((e as { error?: string }).error || "Ошибка создания");
   }
   return res.json();
 }
 
-export async function updateTechDomain(id: string, data: TechDomainForm): Promise<TechDomain> {
+export async function updateTechDomain(
+  id: string,
+  data: TechDomainForm,
+): Promise<TechDomain> {
   const res = await fetch(BASE, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, ...data }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error((e as { error?: string }).error || 'Ошибка обновления');
+    throw new Error((e as { error?: string }).error || "Ошибка обновления");
   }
   return res.json();
 }
