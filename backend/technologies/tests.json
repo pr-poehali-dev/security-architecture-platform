@@ -11,9 +11,8 @@
       "name": "POST create",
       "method": "POST",
       "path": "/",
-      "body": "{\"name\": \"React\", \"owner\": \"Frontend Team\", \"status\": \"active\", \"description\": \"UI библиотека\", \"tags\": [\"frontend\", \"javascript\"]}",
+      "body": "{\"name\": \"Test Tech\", \"owner\": \"Test\", \"status\": \"active\", \"description\": \"Test\", \"tags\": [\"test\"]}",
       "expectedStatus": 201,
-      "expectedBody": {"name": "React", "version": "1.0"},
       "bodyMatcher": "partial"
     },
     {

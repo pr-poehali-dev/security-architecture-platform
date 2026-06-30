@@ -356,15 +356,29 @@ def handler(event: dict, context) -> dict:
             """
         )
         rows = cur.fetchall()
+        hts_ids = [row[0] for row in rows]
+        tags_map = {}
+        if hts_ids:
+            cur.execute(
+                """
+                SELECT ht.hardening_id, t.id, t.name
+                FROM hardening_tags ht
+                JOIN tags t ON t.id = ht.tag_id
+                WHERE ht.hardening_id = ANY(%s)
+                ORDER BY t.name
+                """,
+                (hts_ids,),
+            )
+            for tr in cur.fetchall():
+                tags_map.setdefault(tr[0], []).append({"id": tr[1], "name": tr[2]})
         result = []
         for row in rows:
-            tags = get_tags(cur, row[0])
             result.append({
                 "id": row[0], "name": row[1], "owner": row[2],
                 "status": row[3], "statusLabel": STATUS_MAP.get(row[3], row[3]),
                 "description": row[4], "createdAt": row[5], "updatedAt": row[6],
                 "version": row[7] or "—",
-                "tags": tags,
+                "tags": tags_map.get(row[0], []),
             })
         conn.close()
         return ok(result)

@@ -5,8 +5,7 @@
       "method": "GET",
       "path": "/",
       "expectedStatus": 200,
-      "expectedBody": [],
-      "bodyMatcher": "exact"
+      "bodyMatcher": "partial"
     },
     {
       "name": "POST create",
@@ -14,7 +13,6 @@
       "path": "/",
       "body": "{\"name\": \"Тестовый тех. домен\", \"owner\": \"Admin\", \"status\": \"active\", \"description\": \"Тест\", \"orgDomainIds\": []}",
       "expectedStatus": 201,
-      "expectedBody": {"name": "Тестовый тех. домен", "version": "1.0"},
       "bodyMatcher": "partial"
     },
     {

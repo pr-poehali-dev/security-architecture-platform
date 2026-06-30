@@ -205,10 +205,24 @@ def handler(event: dict, context) -> dict:
                         """
                     )
                     rows = cur.fetchall()
+                    tech_ids = [r[0] for r in rows]
+                    tags_map = {}
+                    if tech_ids:
+                        cur.execute(
+                            """
+                            SELECT tt.technology_id, t.id, t.name
+                            FROM technology_tags tt
+                            JOIN tags t ON t.id = tt.tag_id
+                            WHERE tt.technology_id = ANY(%s)
+                            ORDER BY t.name
+                            """,
+                            (tech_ids,),
+                        )
+                        for tr in cur.fetchall():
+                            tags_map.setdefault(tr[0], []).append({"id": tr[1], "name": tr[2]})
                     result = []
                     for r in rows:
-                        tags = get_tags(cur, r[0])
-                        result.append(row_to_dict(r, tags, r[7] or "1.0"))
+                        result.append(row_to_dict(r, tags_map.get(r[0], []), r[7] or "1.0"))
                     return ok(result)
 
                 # ── GET single ────────────────────────────────────────────

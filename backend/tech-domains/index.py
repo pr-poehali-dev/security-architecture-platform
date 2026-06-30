@@ -125,10 +125,29 @@ def handler(event: dict, context) -> dict:
                         """
                     )
                     rows = cur.fetchall()
+                    td_ids = [r[0] for r in rows]
+                    # Org links: берём из последней версии одним запросом
+                    org_ids_map = {r[0]: [] for r in rows}
+                    if td_ids:
+                        cur.execute(
+                            """
+                            SELECT DISTINCT ON (tech_domain_id) tech_domain_id, org_domain_ids
+                            FROM tech_domain_versions
+                            WHERE tech_domain_id = ANY(%s)
+                            ORDER BY tech_domain_id, changed_at DESC
+                            """,
+                            (td_ids,),
+                        )
+                        for tr in cur.fetchall():
+                            org_ids_map[tr[0]] = list(tr[1]) if tr[1] else []
+                    # Названия org_domains одним запросом
+                    all_org_ids = list({oid for ids in org_ids_map.values() for oid in ids})
+                    org_names = {}
+                    if all_org_ids:
+                        org_names = get_org_names(cur, all_org_ids)
                     result = []
                     for r in rows:
-                        org_ids = get_org_ids(cur, r[0])
-                        org_names = get_org_names(cur, org_ids)
+                        org_ids = org_ids_map.get(r[0], [])
                         result.append({
                             "id": r[0], "name": r[1], "owner": r[2],
                             "status": r[3], "statusLabel": STATUS_MAP.get(r[3], r[3]),
