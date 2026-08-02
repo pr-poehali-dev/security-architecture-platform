@@ -164,6 +164,13 @@ const Templates = () => (
   </>
 );
 
+const ProductAnalysis = () => (
+  <>
+    <Hero icon="ScanSearch" title="Архитектурный анализ продуктов" desc="Оценка архитектуры продуктов на соответствие требованиям и эталонным шаблонам безопасности." badge="Конструктор" />
+    <div className="px-6 py-8 max-w-[1400px] mx-auto"><Placeholder label="Архитектурный анализ продуктов" /></div>
+  </>
+);
+
 const Settings = () => (
   <>
     <Hero icon="Settings" title="Настройки" desc="Управление параметрами платформы, пользователями, интеграциями и экспортом данных." badge="Система" />
@@ -204,6 +211,7 @@ const SECTIONS: Record<string, React.FC> = {
   hardening:     Hardening,
   architectures: Architectures,
   templates:     Templates,
+  'product-analysis': ProductAnalysis,
   settings:      Settings,
 };
 

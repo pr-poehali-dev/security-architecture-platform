@@ -16,6 +16,7 @@ export const NAV: NavItem[] = [
   { id: 'hardening',     label: 'Харденинг и конфигурации',       icon: 'ShieldCheck',  group: 'Управление'  },
   { id: 'architectures', label: 'Архитектуры',                    icon: 'Network',      group: 'Конструктор' },
   { id: 'templates',     label: 'Шаблоны архитектур',             icon: 'Boxes',        group: 'Конструктор' },
+  { id: 'product-analysis', label: 'Архитектурный анализ продуктов', icon: 'ScanSearch', group: 'Конструктор' },
   { id: 'settings',      label: 'Настройки',                      icon: 'Settings',     group: 'Система'     },
 ];
 
