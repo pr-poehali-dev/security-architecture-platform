@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
+import { TransformWrapper, TransformComponent, useControls, MiniMap } from 'react-zoom-pan-pinch';
 import mermaid from 'mermaid';
 import Icon from '@/components/ui/icon';
 
@@ -94,7 +94,8 @@ function MermaidInner({ svg, onFullscreen, compact }: InnerProps) {
       maxScale={8}
       limitToBounds={false}
       doubleClick={{ mode: 'reset' }}
-      wheel={{ step: 0.02 }}
+      wheel={{ step: 0.006 }}
+      smooth
       panning={{ velocityDisabled: false }}
     >
       <div className={`relative overflow-hidden rounded-md bg-transparent ${compact ? 'min-h-[120px]' : 'min-h-[220px]'}`}>
@@ -108,6 +109,18 @@ function MermaidInner({ svg, onFullscreen, compact }: InnerProps) {
             className="[&>svg]:max-w-none [&>svg]:h-auto"
           />
         </TransformComponent>
+        {!compact && (
+          <MiniMap
+            width={110}
+            borderColor="hsl(var(--border))"
+            className="!absolute !bottom-2 !right-2 !bg-card/90 !backdrop-blur-sm !rounded-md !border !border-border overflow-hidden"
+          >
+            <div
+              dangerouslySetInnerHTML={{ __html: svg }}
+              className="[&>svg]:max-w-none [&>svg]:h-auto"
+            />
+          </MiniMap>
+        )}
         <div className="absolute bottom-2 left-2 text-[10px] text-muted-foreground/50 select-none">
           Колесо мыши — зум · Перетащи — панорама · ДвойнойКлик — сброс
         </div>
@@ -179,7 +192,8 @@ function FullscreenModal({ svg, title, theme, onThemeChange, onClose }: ModalPro
           maxScale={12}
           limitToBounds={false}
           doubleClick={{ mode: 'reset' }}
-          wheel={{ step: 0.02 }}
+          wheel={{ step: 0.006 }}
+          smooth
           centerOnInit
         >
           <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
@@ -195,6 +209,16 @@ function FullscreenModal({ svg, title, theme, onThemeChange, onClose }: ModalPro
               className="[&>svg]:max-w-none [&>svg]:h-auto"
             />
           </TransformComponent>
+          <MiniMap
+            width={160}
+            borderColor="hsl(var(--border))"
+            className="!absolute !bottom-14 !right-3 !bg-card/90 !backdrop-blur-sm !rounded-md !border !border-border overflow-hidden"
+          >
+            <div
+              dangerouslySetInnerHTML={{ __html: svg }}
+              className="[&>svg]:max-w-none [&>svg]:h-auto"
+            />
+          </MiniMap>
         </TransformWrapper>
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-muted-foreground/50 select-none bg-card/70 backdrop-blur-sm px-3 py-1 rounded-full border border-border/50">
           Колесо мыши — зум · Перетащи — панорама · Двойной клик — сброс · Esc — закрыть
