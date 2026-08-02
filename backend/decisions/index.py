@@ -9,9 +9,10 @@ GET  /?tech_suggest=...         — поиск технологий для св�
 POST /                          — создать решение
 PUT  /                          — обновить решение
 
-POST /?action=add_mermaid       body: {decision_id, title, code}
-PUT  /?action=update_mermaid    body: {id, title, code}
-POST /?action=upload_file       body: {decision_id, filename, content_type, data_base64}
+POST   /?action=add_mermaid       body: {decision_id, title, code}
+PUT    /?action=update_mermaid    body: {id, title, code}
+DELETE /?action=delete_mermaid&mermaid_id=...
+POST   /?action=upload_file       body: {decision_id, filename, content_type, data_base64}
 """
 
 import base64
@@ -508,6 +509,18 @@ def handler(event: dict, context) -> dict:
                         return err("Схема не найдена", 404)
                     return ok({"id": r[0], "title": r[1], "code": r[2],
                                "createdAt": r[3], "updatedAt": r[4]})
+
+                # ── DELETE delete_mermaid ─────────────────────────────────
+                if method == "DELETE" and action == "delete_mermaid":
+                    mid = params.get("mermaid_id") or (parse_body(event).get("id") if event.get("body") else None)
+                    if not mid:
+                        return err("id обязателен")
+
+                    cur.execute("DELETE FROM decision_mermaid WHERE id=%s RETURNING id", (mid,))
+                    r = cur.fetchone()
+                    if not r:
+                        return err("Схема не найдена", 404)
+                    return ok({"id": r[0]})
 
                 # ── POST upload_file ──────────────────────────────────────
                 if method == "POST" and action == "upload_file":

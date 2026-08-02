@@ -3,6 +3,7 @@ import MermaidEditor from '@/components/technologies/MermaidEditor';
 import {
   addMermaid,
   updateMermaid,
+  deleteMermaid,
   formatBytes,
   MermaidDiagram,
   DecisionFile,
@@ -19,6 +20,7 @@ interface DecisionFormAttachmentsTabProps {
   currentId: string;
   mermaidDiagrams: MermaidDiagram[];
   onMermaidSaved: (d: MermaidDiagram) => void;
+  onMermaidDeleted: (id: number) => void;
   files: DecisionFile[];
   uploading: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
@@ -29,6 +31,7 @@ export default function DecisionFormAttachmentsTab({
   currentId,
   mermaidDiagrams,
   onMermaidSaved,
+  onMermaidDeleted,
   files,
   uploading,
   fileInputRef,
@@ -48,6 +51,8 @@ export default function DecisionFormAttachmentsTab({
             onSaved={onMermaidSaved}
             onAdd={(title, code) => addMermaid(currentId, title, code)}
             onUpdate={(mid, title, code) => updateMermaid(mid, title, code)}
+            onDelete={(mid) => deleteMermaid(mid)}
+            onDeleted={onMermaidDeleted}
           />
         ) : (
           <p className="text-sm text-muted-foreground italic">Сохраните карточку, чтобы добавить схемы</p>

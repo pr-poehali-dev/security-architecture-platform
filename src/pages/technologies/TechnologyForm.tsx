@@ -118,6 +118,10 @@ export default function TechnologyForm() {
     });
   };
 
+  const onMermaidDeleted = (mid: number) => {
+    setMermaidDiagrams((prev) => prev.filter((x) => x.id !== mid));
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center py-32 text-muted-foreground gap-3">
       <Icon name="Loader2" size={22} className="animate-spin" /> Загрузка…
@@ -340,6 +344,7 @@ export default function TechnologyForm() {
                       technologyId={id || techIdForAttach}
                       diagrams={mermaidDiagrams}
                       onSaved={onMermaidSaved}
+                      onDeleted={onMermaidDeleted}
                     />
                   </div>
 

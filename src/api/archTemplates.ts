@@ -246,6 +246,11 @@ export const updateMermaid = (id: number, title: string, code: string) =>
     body: JSON.stringify({ id, title, code }),
   });
 
+export const deleteMermaid = (id: number) =>
+  req<{ id: number }>(`${BASE}?action=delete_mermaid&mermaid_id=${id}`, {
+    method: "DELETE",
+  });
+
 export const uploadFile = async (
   template_id: string,
   file: File,

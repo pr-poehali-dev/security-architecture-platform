@@ -169,6 +169,10 @@ export default function DecisionForm() {
     });
   };
 
+  const onMermaidDeleted = (mid: number) => {
+    setMermaidDiagrams((prev) => prev.filter((x) => x.id !== mid));
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -347,6 +351,7 @@ export default function DecisionForm() {
               currentId={currentId}
               mermaidDiagrams={mermaidDiagrams}
               onMermaidSaved={onMermaidSaved}
+              onMermaidDeleted={onMermaidDeleted}
               files={files}
               uploading={uploading}
               fileInputRef={fileInputRef}

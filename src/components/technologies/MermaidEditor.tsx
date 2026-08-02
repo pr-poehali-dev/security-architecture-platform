@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import MermaidPreview from './MermaidPreview';
-import { MermaidDiagram, addMermaid, updateMermaid } from '@/api/technologies';
+import { MermaidDiagram, addMermaid, updateMermaid, deleteMermaid } from '@/api/technologies';
 
 interface Props {
   technologyId: string;
   diagrams: MermaidDiagram[];
   onSaved: (d: MermaidDiagram) => void;
+  onDeleted?: (id: number) => void;
   /** Override save handlers (for non-technology entities) */
   onAdd?: (title: string, code: string) => Promise<MermaidDiagram>;
   onUpdate?: (id: number, title: string, code: string) => Promise<MermaidDiagram>;
+  onDelete?: (id: number) => Promise<void>;
 }
 
 const SNIPPETS: { label: string; code: string }[] = [
@@ -29,13 +31,15 @@ const SNIPPETS: { label: string; code: string }[] = [
 
 const PLACEHOLDER = SNIPPETS[0].code;
 
-export default function MermaidEditor({ technologyId, diagrams, onSaved, onAdd, onUpdate }: Props) {
+export default function MermaidEditor({ technologyId, diagrams, onSaved, onDeleted, onAdd, onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState<MermaidDiagram | null>(null);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [code, setCode] = useState(PLACEHOLDER);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
   const openCreate = () => {
     setEditing(null);
@@ -54,6 +58,22 @@ export default function MermaidEditor({ technologyId, diagrams, onSaved, onAdd, 
   };
 
   const cancel = () => { setCreating(false); setEditing(null); };
+
+  const remove = async (d: MermaidDiagram) => {
+    setDeletingId(d.id);
+    setError('');
+    try {
+      if (onDelete) await onDelete(d.id);
+      else await deleteMermaid(d.id);
+      onDeleted?.(d.id);
+      if (editing?.id === d.id) cancel();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка удаления');
+    } finally {
+      setDeletingId(null);
+      setConfirmId(null);
+    }
+  };
 
   const save = async () => {
     if (!code.trim()) { setError('Код схемы обязателен'); return; }
@@ -85,13 +105,46 @@ export default function MermaidEditor({ technologyId, diagrams, onSaved, onAdd, 
               <Icon name="GitBranch" size={16} className="text-accent" />
               <span className="text-sm font-medium">{d.title || 'Без названия'}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => openEdit(d)}
-              className="text-xs text-muted-foreground hover:text-accent flex items-center gap-1 transition-colors"
-            >
-              <Icon name="Pencil" size={12} /> Изменить
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => openEdit(d)}
+                className="text-xs text-muted-foreground hover:text-accent flex items-center gap-1 transition-colors"
+              >
+                <Icon name="Pencil" size={12} /> Изменить
+              </button>
+              {confirmId === d.id ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Удалить?</span>
+                  <button
+                    type="button"
+                    onClick={() => remove(d)}
+                    disabled={deletingId === d.id}
+                    className="text-xs text-destructive hover:text-destructive/80 font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                  >
+                    {deletingId === d.id
+                      ? <Icon name="Loader2" size={12} className="animate-spin" />
+                      : <Icon name="Check" size={12} />}
+                    Да
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmId(null)}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Нет
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmId(d.id)}
+                  className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                >
+                  <Icon name="Trash2" size={12} /> Удалить
+                </button>
+              )}
+            </div>
           </div>
           <div className="p-4">
             <MermaidPreview code={d.code} title={d.title} />

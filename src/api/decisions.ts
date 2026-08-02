@@ -213,6 +213,14 @@ export async function updateMermaid(
   return res.json();
 }
 
+export async function deleteMermaid(id: number): Promise<void> {
+  const res = await fetch(
+    `${BASE}?action=delete_mermaid&mermaid_id=${id}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error("Ошибка удаления схемы");
+}
+
 export async function uploadFile(
   decision_id: string,
   file: File,

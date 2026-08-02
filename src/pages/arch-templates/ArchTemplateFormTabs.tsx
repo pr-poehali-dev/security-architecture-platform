@@ -11,6 +11,7 @@ import {
   fetchDecisionsSuggest,
   addMermaid,
   updateMermaid,
+  deleteMermaid,
   ArchTemplateFormData,
   TemplateStatus,
   TemplateType,
@@ -299,6 +300,8 @@ export default function ArchTemplateFormTabs({
                     setMermaidDiagrams((p) => p.map((x) => x.id === mid ? d : x));
                     return d;
                   }}
+                  onDelete={async (mid) => { await deleteMermaid(mid); }}
+                  onDeleted={(mid) => setMermaidDiagrams((p) => p.filter((x) => x.id !== mid))}
                 />
               </div>
             </>
