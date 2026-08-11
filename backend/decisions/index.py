@@ -6,6 +6,7 @@ GET  /?id=...                   — карточка + версии + теги +
 GET  /?tags_suggest=...         — автодополнение тегов
 GET  /?decisions_suggest=...    — поиск решений для связи
 GET  /?tech_suggest=...         — поиск технологий для связи
+GET  /?req_suggest=...&req_type=...  — поиск требований для привязки (с фильтром по типу)
 POST /                          — создать решение
 PUT  /                          — обновить решение
 
@@ -39,6 +40,13 @@ STATUS_REVERSE = {v: k for k, v in STATUS_MAP.items()}
 TYPE_MAP = {
     "technical":      "Техническое",
     "organizational": "Организационное",
+}
+
+REQ_TYPE_MAP = {
+    "technical":      "Технические",
+    "functional":     "Функциональные",
+    "non_functional": "Не функциональные",
+    "organizational": "Организационный",
 }
 
 CDN_BASE = f"https://cdn.poehali.dev/projects/{os.environ.get('AWS_ACCESS_KEY_ID', '')}/bucket"
@@ -197,6 +205,35 @@ def set_technologies(cur, dec_id: str, tech_ids: list):
         )
 
 
+def get_linked_requirements(cur, dec_id: str) -> list:
+    """Прямо привязанные к решению требования (ручная привязка)."""
+    cur.execute(
+        """
+        SELECT r.id, r.short_desc, r.status, r.req_type
+        FROM requirements r
+        JOIN decision_requirements dr ON dr.requirement_id = r.id
+        WHERE dr.decision_id = %s
+        ORDER BY r.id
+        """,
+        (dec_id,),
+    )
+    return [
+        {"id": r[0], "shortDesc": r[1], "status": r[2],
+         "statusLabel": STATUS_MAP.get(r[2], r[2]),
+         "reqType": r[3], "reqTypeLabel": REQ_TYPE_MAP.get(r[3], r[3])}
+        for r in cur.fetchall()
+    ]
+
+
+def set_requirements(cur, dec_id: str, req_ids: list):
+    cur.execute("DELETE FROM decision_requirements WHERE decision_id = %s", (dec_id,))
+    for rid in req_ids:
+        cur.execute(
+            "INSERT INTO decision_requirements (decision_id, requirement_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (dec_id, rid),
+        )
+
+
 def get_requirements_by_tech(cur, tech_ids: list) -> list:
     """Возвращает требования сгруппированные по тех. домену для списка технологий."""
     if not tech_ids:
@@ -232,7 +269,8 @@ def get_requirements_by_tech(cur, tech_ids: list) -> list:
 
 
 def row_to_dict(row, tags, cur_version, mermaid=None, files=None, versions=None,
-                related_decisions=None, technologies=None, requirements_by_domain=None):
+                related_decisions=None, technologies=None, requirements_by_domain=None,
+                linked_requirements=None):
     d = {
         "id": row[0], "name": row[1], "owner": row[2],
         "status": row[3], "statusLabel": STATUS_MAP.get(row[3], row[3]),
@@ -253,6 +291,8 @@ def row_to_dict(row, tags, cur_version, mermaid=None, files=None, versions=None,
         d["technologies"] = technologies
     if requirements_by_domain is not None:
         d["requirementsByDomain"] = requirements_by_domain
+    if linked_requirements is not None:
+        d["linkedRequirements"] = linked_requirements
     return d
 
 
@@ -268,6 +308,8 @@ def handler(event: dict, context) -> dict:
     tags_suggest = params.get("tags_suggest")
     decisions_suggest = params.get("decisions_suggest")
     tech_suggest = params.get("tech_suggest")
+    req_suggest = params.get("req_suggest")
+    req_type_filter = params.get("req_type")
 
     conn = get_conn()
     try:
@@ -313,6 +355,34 @@ def handler(event: dict, context) -> dict:
                         cur.execute("SELECT id, name, status FROM technologies ORDER BY name LIMIT 50")
                     return ok([{"id": r[0], "name": r[1], "status": r[2],
                                 "statusLabel": STATUS_MAP.get(r[2], r[2])} for r in cur.fetchall()])
+
+                # ── Requirements search (с фильтром по типу) ──────────────
+                if method == "GET" and req_suggest is not None:
+                    q = req_suggest.strip()
+                    conditions = []
+                    args = []
+                    if q:
+                        conditions.append("r.short_desc ILIKE %s")
+                        args.append(f"%{q}%")
+                    if req_type_filter:
+                        conditions.append("r.req_type = %s")
+                        args.append(req_type_filter)
+                    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+                    cur.execute(
+                        f"""
+                        SELECT r.id, r.short_desc, r.req_type, r.status
+                        FROM requirements r
+                        {where}
+                        ORDER BY r.id LIMIT 30
+                        """,
+                        args,
+                    )
+                    return ok([
+                        {"id": r[0], "shortDesc": r[1],
+                         "reqType": r[2], "reqTypeLabel": REQ_TYPE_MAP.get(r[2], r[2]),
+                         "status": r[3], "statusLabel": STATUS_MAP.get(r[3], r[3])}
+                        for r in cur.fetchall()
+                    ])
 
                 # ── GET list ──────────────────────────────────────────────
                 if method == "GET" and not dec_id:
@@ -376,8 +446,9 @@ def handler(event: dict, context) -> dict:
                     techs = get_technologies(cur, dec_id)
                     tech_ids = [t["id"] for t in techs]
                     reqs_by_domain = get_requirements_by_tech(cur, tech_ids)
+                    linked_reqs = get_linked_requirements(cur, dec_id)
                     return ok(row_to_dict(row, tags, cur_ver, mermaid, files, versions,
-                                         related, techs, reqs_by_domain))
+                                         related, techs, reqs_by_domain, linked_reqs))
 
                 # ── POST create ───────────────────────────────────────────
                 if method == "POST" and not action:
@@ -408,6 +479,7 @@ def handler(event: dict, context) -> dict:
                     set_tags(cur, new_id, body.get("tags") or [])
                     set_related_decisions(cur, new_id, body.get("relatedDecisionIds") or [])
                     set_technologies(cur, new_id, body.get("technologyIds") or [])
+                    set_requirements(cur, new_id, body.get("requirementIds") or [])
 
                     cur.execute(
                         "INSERT INTO decision_versions (decision_id, version, change_note) VALUES (%s, '1.0', 'Создано')",
@@ -455,6 +527,7 @@ def handler(event: dict, context) -> dict:
                     set_tags(cur, did, body.get("tags") or [])
                     set_related_decisions(cur, did, body.get("relatedDecisionIds") or [])
                     set_technologies(cur, did, body.get("technologyIds") or [])
+                    set_requirements(cur, did, body.get("requirementIds") or [])
 
                     cur.execute(
                         "INSERT INTO decision_versions (decision_id, version, change_note) VALUES (%s, %s, %s)",

@@ -10,12 +10,15 @@ import {
   uploadFile,
   fetchDecisionsSuggest,
   fetchTechSuggest,
+  fetchRequirementsSuggest,
   DecisionStatus,
   DecisionFormData,
   MermaidDiagram,
   DecisionFile,
   DecisionRef,
   TechRef,
+  LinkedRequirementRef,
+  ReqType,
 } from '@/api/decisions';
 import DecisionFormMainTab from './DecisionFormMainTab';
 import DecisionFormAttachmentsTab from './DecisionFormAttachmentsTab';
@@ -24,7 +27,7 @@ import DecisionFormLinksTab from './DecisionFormLinksTab';
 const EMPTY: DecisionFormData = {
   name: '', owner: '', status: 'in_development' as DecisionStatus,
   decisionType: 'technical',
-  description: '', tags: [], relatedDecisionIds: [], technologyIds: [], changeNote: '',
+  description: '', tags: [], relatedDecisionIds: [], technologyIds: [], requirementIds: [], changeNote: '',
 };
 
 type Tab = 'main' | 'description' | 'attachments' | 'links';
@@ -75,6 +78,15 @@ export default function DecisionForm() {
   const techDebounce = useRef<ReturnType<typeof setTimeout>>();
   const techRef = useRef<HTMLDivElement>(null);
 
+  // Requirements search
+  const [selectedReqs, setSelectedReqs] = useState<LinkedRequirementRef[]>([]);
+  const [reqQuery, setReqQuery] = useState('');
+  const [reqTypeFilter, setReqTypeFilter] = useState<ReqType | ''>('');
+  const [reqSuggestions, setReqSuggestions] = useState<LinkedRequirementRef[]>([]);
+  const [reqOpen, setReqOpen] = useState(false);
+  const reqDebounce = useRef<ReturnType<typeof setTimeout>>();
+  const reqRef = useRef<HTMLDivElement>(null);
+
   const { clear } = useFormCache(cacheKey, form, (cached) => {
     setForm(cached); setRestored(true);
   });
@@ -91,6 +103,7 @@ export default function DecisionForm() {
             tags: d.tags.map((t) => t.name),
             relatedDecisionIds: d.relatedDecisions.map((r) => r.id),
             technologyIds: d.technologies.map((t) => t.id),
+            requirementIds: d.linkedRequirements.map((r) => r.id),
             changeNote: '',
           };
         });
@@ -100,6 +113,7 @@ export default function DecisionForm() {
         setFiles(d.files);
         setSelectedDecisions(d.relatedDecisions);
         setSelectedTechs(d.technologies);
+        setSelectedReqs(d.linkedRequirements);
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -123,11 +137,21 @@ export default function DecisionForm() {
     }, 200);
   }, [techQuery, selectedTechs]);
 
+  // Requirements suggest
+  useEffect(() => {
+    clearTimeout(reqDebounce.current);
+    reqDebounce.current = setTimeout(async () => {
+      const res = await fetchRequirementsSuggest(reqQuery, reqTypeFilter);
+      setReqSuggestions(res.filter((r) => !selectedReqs.find((s) => s.id === r.id)));
+    }, 200);
+  }, [reqQuery, reqTypeFilter, selectedReqs]);
+
   // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (decRef.current && !decRef.current.contains(e.target as Node)) setDecOpen(false);
       if (techRef.current && !techRef.current.contains(e.target as Node)) setTechOpen(false);
+      if (reqRef.current && !reqRef.current.contains(e.target as Node)) setReqOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -160,6 +184,19 @@ export default function DecisionForm() {
     const updated = selectedTechs.filter((t) => t.id !== tid);
     setSelectedTechs(updated);
     set('technologyIds', updated.map((t) => t.id));
+  };
+
+  const addReq = (r: LinkedRequirementRef) => {
+    const updated = [...selectedReqs, r];
+    setSelectedReqs(updated);
+    set('requirementIds', updated.map((x) => x.id));
+    setReqQuery(''); setReqOpen(false);
+  };
+
+  const removeReq = (rid: string) => {
+    const updated = selectedReqs.filter((r) => r.id !== rid);
+    setSelectedReqs(updated);
+    set('requirementIds', updated.map((r) => r.id));
   };
 
   const onMermaidSaved = (d: MermaidDiagram) => {
@@ -288,9 +325,9 @@ export default function DecisionForm() {
                   {mermaidDiagrams.length + files.length}
                 </span>
               )}
-              {t.id === 'links' && (selectedDecisions.length + selectedTechs.length > 0) && (
+              {t.id === 'links' && (selectedDecisions.length + selectedTechs.length + selectedReqs.length > 0) && (
                 <span className="text-[10px] font-mono bg-accent/15 text-accent px-1.5 py-0.5 rounded-full">
-                  {selectedDecisions.length + selectedTechs.length}
+                  {selectedDecisions.length + selectedTechs.length + selectedReqs.length}
                 </span>
               )}
             </button>
@@ -379,6 +416,17 @@ export default function DecisionForm() {
               techRef={techRef}
               addTech={addTech}
               removeTech={removeTech}
+              selectedReqs={selectedReqs}
+              reqQuery={reqQuery}
+              setReqQuery={setReqQuery}
+              reqTypeFilter={reqTypeFilter}
+              setReqTypeFilter={setReqTypeFilter}
+              reqOpen={reqOpen}
+              setReqOpen={setReqOpen}
+              reqSuggestions={reqSuggestions}
+              reqRef={reqRef}
+              addReq={addReq}
+              removeReq={removeReq}
             />
           )}
 

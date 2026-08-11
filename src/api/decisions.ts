@@ -72,6 +72,28 @@ export interface RequirementDomainGroup {
   requirements: RequirementRef[];
 }
 
+export type ReqType =
+  | "technical"
+  | "functional"
+  | "non_functional"
+  | "organizational";
+
+export interface LinkedRequirementRef {
+  id: string;
+  shortDesc: string;
+  status: string;
+  statusLabel: string;
+  reqType: ReqType;
+  reqTypeLabel: string;
+}
+
+export const REQ_TYPE_OPTIONS: { value: ReqType; label: string }[] = [
+  { value: "technical", label: "Технические" },
+  { value: "functional", label: "Функциональные" },
+  { value: "non_functional", label: "Не функциональные" },
+  { value: "organizational", label: "Организационный" },
+];
+
 export interface Decision {
   id: string;
   name: string;
@@ -94,6 +116,7 @@ export interface DecisionDetail extends Decision {
   relatedDecisions: DecisionRef[];
   technologies: TechRef[];
   requirementsByDomain: RequirementDomainGroup[];
+  linkedRequirements: LinkedRequirementRef[];
 }
 
 export interface DecisionFormData {
@@ -105,6 +128,7 @@ export interface DecisionFormData {
   tags: string[];
   relatedDecisionIds: string[];
   technologyIds: string[];
+  requirementIds: string[];
   changeNote?: string;
 }
 
@@ -150,6 +174,17 @@ export async function fetchDecisionsSuggest(
 
 export async function fetchTechSuggest(query: string): Promise<TechRef[]> {
   const res = await fetch(`${BASE}?tech_suggest=${encodeURIComponent(query)}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function fetchRequirementsSuggest(
+  query: string,
+  reqType?: ReqType | "",
+): Promise<LinkedRequirementRef[]> {
+  const params = new URLSearchParams({ req_suggest: query });
+  if (reqType) params.set("req_type", reqType);
+  const res = await fetch(`${BASE}?${params.toString()}`);
   if (!res.ok) return [];
   return res.json();
 }

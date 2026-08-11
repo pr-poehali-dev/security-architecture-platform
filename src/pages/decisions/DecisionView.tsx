@@ -209,6 +209,32 @@ export default function DecisionView() {
             </section>
           )}
 
+          {/* Linked requirements (direct) */}
+          {dec.linkedRequirements.length > 0 && (
+            <section className="rounded-lg border border-border bg-card p-6">
+              <h2 className="font-semibold mb-4 flex items-center gap-2">
+                <Icon name="ListChecks" size={18} className="text-accent" /> Привязанные требования
+                <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  {dec.linkedRequirements.length}
+                </span>
+              </h2>
+              <div className="space-y-1">
+                {dec.linkedRequirements.map((r) => (
+                  <Link
+                    key={r.id}
+                    to={`/requirements/${r.id}`}
+                    className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors group"
+                  >
+                    <span className="font-mono text-[11px] text-accent">{r.id}</span>
+                    <span className="text-sm flex-1 truncate">{r.shortDesc}</span>
+                    <span className="text-[10px] text-muted-foreground">{r.reqTypeLabel}</span>
+                    <Icon name="ArrowRight" size={12} className="text-muted-foreground shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Requirements by domain */}
           {dec.requirementsByDomain.length > 0 && (
             <section className="rounded-lg border border-border bg-card p-6">
