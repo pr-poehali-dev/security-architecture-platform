@@ -25,6 +25,9 @@ import HardeningForm from "./pages/hardening/HardeningForm";
 import ArchTemplateList from "./pages/arch-templates/ArchTemplateList";
 import ArchTemplateView from "./pages/arch-templates/ArchTemplateView";
 import ArchTemplateForm from "./pages/arch-templates/ArchTemplateForm";
+import ProductList from "./pages/products/ProductList";
+import ProductView from "./pages/products/ProductView";
+import ProductForm from "./pages/products/ProductForm";
 import LibraryPage from "./pages/library/LibraryPage";
 import NotFound from "./pages/NotFound";
 
@@ -81,6 +84,12 @@ const App = () => (
           <Route path="/templates/new" element={<Layout section="templates"><ArchTemplateForm /></Layout>} />
           <Route path="/templates/:id" element={<Layout section="templates"><ArchTemplateView /></Layout>} />
           <Route path="/templates/:id/edit" element={<Layout section="templates"><ArchTemplateForm /></Layout>} />
+
+          {/* Архитектурный анализ продуктов */}
+          <Route path="/product-analysis" element={<Layout section="product-analysis"><ProductList /></Layout>} />
+          <Route path="/product-analysis/new" element={<Layout section="product-analysis"><ProductForm /></Layout>} />
+          <Route path="/product-analysis/:id" element={<Layout section="product-analysis"><ProductView /></Layout>} />
+          <Route path="/product-analysis/:id/edit" element={<Layout section="product-analysis"><ProductForm /></Layout>} />
 
           {/* Остальные разделы */}
           <Route path="/:section" element={<Layout />} />
