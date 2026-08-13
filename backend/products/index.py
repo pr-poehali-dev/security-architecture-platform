@@ -14,12 +14,19 @@ PUT  /                              — обновить продукт
 PUT  /?action=set_requirement_assessment
      body: {product_id, requirement_id, status, comment}
      status: not_assessed | compliant | partial | non_compliant
+
+GET  /?action=versions&product_id=...        — список версий проведённого анализа продукта
+GET  /?action=version&version_id=...         — снимок конкретной версии анализа
+GET  /?action=compare_versions&from_id=...&to_id=...  — сравнение двух версий анализа
+POST /?action=save_analysis_version
+     body: {product_id, change_note}         — зафиксировать текущее состояние анализа как новую версию
 """
 
 import json
 import os
 
 import psycopg2
+from psycopg2.extras import Json
 
 SCHEMA = "t_p84706301_security_architectur"
 
@@ -335,6 +342,102 @@ def compute_template_matches(cur, tech_ids: list, decision_ids: list) -> list:
     return result
 
 
+def next_analysis_version(cur, product_id: str) -> str:
+    cur.execute(
+        f"""
+        SELECT version FROM {SCHEMA}.product_analysis_versions
+        WHERE product_id = %s ORDER BY analyzed_at DESC LIMIT 1
+        """,
+        (product_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return "1.0"
+    parts = row[0].split(".")
+    try:
+        major = int(parts[0])
+        minor = int(parts[1]) if len(parts) > 1 else 0
+    except ValueError:
+        major, minor = 1, 0
+    return f"{major}.{minor + 1}"
+
+
+def get_analysis_versions(cur, product_id: str) -> list:
+    cur.execute(
+        f"""
+        SELECT id, version, change_note, analyzed_at, compliance
+        FROM {SCHEMA}.product_analysis_versions
+        WHERE product_id = %s ORDER BY analyzed_at DESC
+        """,
+        (product_id,),
+    )
+    return [
+        {"id": r[0], "version": r[1], "changeNote": r[2],
+         "analyzedAt": r[3], "compliance": r[4]}
+        for r in cur.fetchall()
+    ]
+
+
+def get_analysis_version_detail(cur, version_id: int) -> dict | None:
+    cur.execute(
+        f"""
+        SELECT id, product_id, version, change_note, analyzed_at, compliance,
+               requirements_snapshot, template_matches_snapshot,
+               technologies_snapshot, decisions_snapshot
+        FROM {SCHEMA}.product_analysis_versions WHERE id = %s
+        """,
+        (version_id,),
+    )
+    r = cur.fetchone()
+    if not r:
+        return None
+    return {
+        "id": r[0], "productId": r[1], "version": r[2], "changeNote": r[3],
+        "analyzedAt": r[4], "compliance": r[5],
+        "requirementsByDomain": r[6], "templateMatches": r[7],
+        "technologies": r[8], "decisions": r[9],
+    }
+
+
+def diff_requirements(from_groups: list, to_groups: list) -> list:
+    """Сравнивает срезы требований двух версий и возвращает список изменений по каждому требованию."""
+    from_map = {}
+    for g in from_groups or []:
+        for r in g.get("requirements", []):
+            from_map[r["id"]] = r
+    to_map = {}
+    for g in to_groups or []:
+        for r in g.get("requirements", []):
+            to_map[r["id"]] = r
+
+    all_ids = set(from_map.keys()) | set(to_map.keys())
+    changes = []
+    for rid in all_ids:
+        f = from_map.get(rid)
+        t = to_map.get(rid)
+        if f and t:
+            if f.get("assessmentStatus") != t.get("assessmentStatus"):
+                changes.append({
+                    "requirementId": rid, "shortDesc": t.get("shortDesc", f.get("shortDesc")),
+                    "change": "status_changed",
+                    "fromStatus": f.get("assessmentStatus"), "fromStatusLabel": f.get("assessmentStatusLabel"),
+                    "toStatus": t.get("assessmentStatus"), "toStatusLabel": t.get("assessmentStatusLabel"),
+                })
+        elif t and not f:
+            changes.append({
+                "requirementId": rid, "shortDesc": t.get("shortDesc"),
+                "change": "added",
+                "toStatus": t.get("assessmentStatus"), "toStatusLabel": t.get("assessmentStatusLabel"),
+            })
+        elif f and not t:
+            changes.append({
+                "requirementId": rid, "shortDesc": f.get("shortDesc"),
+                "change": "removed",
+                "fromStatus": f.get("assessmentStatus"), "fromStatusLabel": f.get("assessmentStatusLabel"),
+            })
+    return changes
+
+
 def row_to_dict(row, tags, technologies=None, decisions=None,
                 requirements_by_domain=None, compliance=None, template_matches=None):
     d = {
@@ -439,6 +542,82 @@ def handler(event: dict, context) -> dict:
                     )
                     return ok({"productId": pid, "requirementId": rid, "status": st,
                                "statusLabel": ASSESSMENT_MAP.get(st, st), "comment": comment})
+
+                # ── POST save_analysis_version ─────────────────────────────
+                if method == "POST" and action == "save_analysis_version":
+                    body = parse_body(event)
+                    pid = body.get("product_id")
+                    if not pid:
+                        return err("product_id обязателен")
+                    cur.execute(f"SELECT id FROM {SCHEMA}.products WHERE id = %s", (pid,))
+                    if not cur.fetchone():
+                        return err("Продукт не найден", 404)
+
+                    technologies = get_technologies(cur, pid)
+                    decisions = get_decisions(cur, pid)
+                    tech_ids = [t["id"] for t in technologies]
+                    decision_ids = [d["id"] for d in decisions]
+                    groups = get_requirements_by_domain(cur, pid, tech_ids, decision_ids)
+                    compliance = compute_compliance_summary(groups)
+                    template_matches = compute_template_matches(cur, tech_ids, decision_ids)
+
+                    new_version = next_analysis_version(cur, pid)
+                    change_note = body.get("change_note", "")
+
+                    cur.execute(
+                        f"""
+                        INSERT INTO {SCHEMA}.product_analysis_versions
+                            (product_id, version, change_note, compliance, requirements_snapshot,
+                             template_matches_snapshot, technologies_snapshot, decisions_snapshot)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id, version, change_note, analyzed_at, compliance
+                        """,
+                        (pid, new_version, change_note, Json(compliance),
+                         Json(groups, dumps=lambda o: json.dumps(o, default=str)),
+                         Json(template_matches), Json(technologies), Json(decisions)),
+                    )
+                    r = cur.fetchone()
+                    return ok({"id": r[0], "version": r[1], "changeNote": r[2],
+                               "analyzedAt": r[3], "compliance": r[4]}, 201)
+
+                # ── GET versions ─────────────────────────────────────────
+                if method == "GET" and action == "versions":
+                    pid = params.get("product_id")
+                    if not pid:
+                        return err("product_id обязателен")
+                    return ok(get_analysis_versions(cur, pid))
+
+                # ── GET version detail ───────────────────────────────────
+                if method == "GET" and action == "version":
+                    vid = params.get("version_id")
+                    if not vid:
+                        return err("version_id обязателен")
+                    detail = get_analysis_version_detail(cur, int(vid))
+                    if not detail:
+                        return err("Версия не найдена", 404)
+                    return ok(detail)
+
+                # ── GET compare_versions ─────────────────────────────────
+                if method == "GET" and action == "compare_versions":
+                    from_id = params.get("from_id")
+                    to_id = params.get("to_id")
+                    if not from_id or not to_id:
+                        return err("from_id и to_id обязательны")
+                    from_v = get_analysis_version_detail(cur, int(from_id))
+                    to_v = get_analysis_version_detail(cur, int(to_id))
+                    if not from_v or not to_v:
+                        return err("Версия не найдена", 404)
+
+                    changes = diff_requirements(
+                        from_v["requirementsByDomain"], to_v["requirementsByDomain"]
+                    )
+                    return ok({
+                        "from": {"id": from_v["id"], "version": from_v["version"],
+                                 "analyzedAt": from_v["analyzedAt"], "compliance": from_v["compliance"]},
+                        "to": {"id": to_v["id"], "version": to_v["version"],
+                               "analyzedAt": to_v["analyzedAt"], "compliance": to_v["compliance"]},
+                        "requirementChanges": changes,
+                    })
 
                 # ── GET list ──────────────────────────────────────────────
                 if method == "GET" and not product_id:

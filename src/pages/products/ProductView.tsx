@@ -2,9 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import MarkdownViewer from '@/components/technologies/MarkdownViewer';
+import ProductVersionsTab from './ProductVersionsTab';
 import {
   fetchProduct,
   setRequirementAssessment,
+  saveAnalysisVersion,
   ProductDetail,
   AssessmentStatus,
   AssessedRequirement,
@@ -158,6 +160,8 @@ function ReqRow({ productId, req, onUpdated }: ReqRowProps) {
   );
 }
 
+type Tab = 'overview' | 'versions';
+
 export default function ProductView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -166,6 +170,11 @@ export default function ProductView() {
   const [error, setError] = useState('');
   const [domainFilter, setDomainFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<AssessmentStatus | 'all'>('all');
+  const [tab, setTab] = useState<Tab>('overview');
+  const [versionsRefreshKey, setVersionsRefreshKey] = useState(0);
+  const [savingVersion, setSavingVersion] = useState(false);
+  const [changeNote, setChangeNote] = useState('');
+  const [showSaveVersion, setShowSaveVersion] = useState(false);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -198,6 +207,22 @@ export default function ProductView() {
         compliance: { total, compliant, partial, nonCompliant, notAssessed, scorePercent },
       };
     });
+  };
+
+  const handleSaveVersion = async () => {
+    if (!id) return;
+    setSavingVersion(true);
+    try {
+      await saveAnalysisVersion(id, changeNote);
+      setChangeNote('');
+      setShowSaveVersion(false);
+      setVersionsRefreshKey((k) => k + 1);
+      setTab('versions');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения версии');
+    } finally {
+      setSavingVersion(false);
+    }
   };
 
   if (loading) return (
@@ -258,16 +283,86 @@ export default function ProductView() {
                 </div>
               )}
             </div>
-            <button
-              onClick={() => navigate(`/product-analysis/${data.id}/edit`)}
-              className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
-            >
-              <Icon name="Pencil" size={16} /> Редактировать
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative">
+                <button
+                  onClick={() => setShowSaveVersion((v) => !v)}
+                  className="h-10 px-4 rounded-md border border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground text-sm font-medium flex items-center gap-2 hover:bg-primary-foreground/20 transition-colors"
+                >
+                  <Icon name="History" size={16} /> Зафиксировать версию
+                </button>
+                {showSaveVersion && (
+                  <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-border bg-card shadow-xl p-4 z-30 text-foreground">
+                    <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-1.5">
+                      Комментарий к версии анализа
+                    </label>
+                    <textarea
+                      value={changeNote}
+                      onChange={(e) => setChangeNote(e.target.value)}
+                      placeholder="Например: анализ после аудита TLS…"
+                      rows={3}
+                      className="w-full px-2.5 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent resize-none"
+                    />
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        type="button"
+                        disabled={savingVersion}
+                        onClick={handleSaveVersion}
+                        className="h-8 px-3 rounded-md bg-accent text-accent-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity disabled:opacity-50"
+                      >
+                        {savingVersion
+                          ? <><Icon name="Loader2" size={12} className="animate-spin" /> Сохранение…</>
+                          : <><Icon name="Save" size={12} /> Сохранить</>
+                        }
+                      </button>
+                      <button type="button" onClick={() => setShowSaveVersion(false)} className="h-8 px-3 rounded-md text-xs text-muted-foreground hover:text-foreground">
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => navigate(`/product-analysis/${data.id}/edit`)}
+                className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Icon name="Pencil" size={16} /> Редактировать
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Tab bar */}
+      <div className="border-b border-border bg-card/60 sticky top-0 z-10">
+        <div className="px-6 max-w-[1400px] mx-auto flex gap-0.5 overflow-x-auto">
+          {([
+            { id: 'overview', label: 'Обзор',            icon: 'Info'    },
+            { id: 'versions', label: 'Версии анализа',    icon: 'History' },
+          ] as const).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
+                tab === t.id
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Icon name={t.icon} size={15} /> {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === 'versions' && (
+        <div className="px-6 py-8 max-w-[1000px] mx-auto">
+          <ProductVersionsTab productId={data.id} refreshKey={versionsRefreshKey} />
+        </div>
+      )}
+
+      {tab === 'overview' && (
       <div className="px-6 py-8 max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left */}
         <div className="lg:col-span-2 space-y-6">
@@ -461,6 +556,7 @@ export default function ProductView() {
           )}
         </div>
       </div>
+      )}
     </>
   );
 }

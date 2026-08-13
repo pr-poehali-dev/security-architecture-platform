@@ -173,3 +173,51 @@ export const setRequirementAssessment = (
       body: JSON.stringify({ product_id: productId, requirement_id: requirementId, status, comment }),
     },
   );
+
+export interface AnalysisVersion {
+  id: number;
+  version: string;
+  changeNote: string;
+  analyzedAt: string;
+  compliance: ComplianceSummary;
+}
+
+export interface AnalysisVersionDetail extends AnalysisVersion {
+  productId: string;
+  requirementsByDomain: RequirementDomainGroup[];
+  templateMatches: TemplateMatch[];
+  technologies: TechRef[];
+  decisions: DecisionRef[];
+}
+
+export interface RequirementChange {
+  requirementId: string;
+  shortDesc: string;
+  change: "status_changed" | "added" | "removed";
+  fromStatus?: AssessmentStatus;
+  fromStatusLabel?: string;
+  toStatus?: AssessmentStatus;
+  toStatusLabel?: string;
+}
+
+export interface VersionsCompareResult {
+  from: { id: number; version: string; analyzedAt: string; compliance: ComplianceSummary };
+  to: { id: number; version: string; analyzedAt: string; compliance: ComplianceSummary };
+  requirementChanges: RequirementChange[];
+}
+
+export const fetchAnalysisVersions = (productId: string) =>
+  req<AnalysisVersion[]>(`${BASE}?action=versions&product_id=${encodeURIComponent(productId)}`);
+
+export const fetchAnalysisVersionDetail = (versionId: number) =>
+  req<AnalysisVersionDetail>(`${BASE}?action=version&version_id=${versionId}`);
+
+export const compareAnalysisVersions = (fromId: number, toId: number) =>
+  req<VersionsCompareResult>(`${BASE}?action=compare_versions&from_id=${fromId}&to_id=${toId}`);
+
+export const saveAnalysisVersion = (productId: string, changeNote: string) =>
+  req<AnalysisVersion>(`${BASE}?action=save_analysis_version`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ product_id: productId, change_note: changeNote }),
+  });
