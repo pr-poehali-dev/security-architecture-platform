@@ -284,44 +284,12 @@ export default function ProductView() {
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <div className="relative">
-                <button
-                  onClick={() => setShowSaveVersion((v) => !v)}
-                  className="h-10 px-4 rounded-md border border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground text-sm font-medium flex items-center gap-2 hover:bg-primary-foreground/20 transition-colors"
-                >
-                  <Icon name="History" size={16} /> Зафиксировать версию
-                </button>
-                {showSaveVersion && (
-                  <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-border bg-card shadow-xl p-4 z-30 text-foreground">
-                    <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                      Комментарий к версии анализа
-                    </label>
-                    <textarea
-                      value={changeNote}
-                      onChange={(e) => setChangeNote(e.target.value)}
-                      placeholder="Например: анализ после аудита TLS…"
-                      rows={3}
-                      className="w-full px-2.5 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent resize-none"
-                    />
-                    <div className="flex items-center gap-2 mt-3">
-                      <button
-                        type="button"
-                        disabled={savingVersion}
-                        onClick={handleSaveVersion}
-                        className="h-8 px-3 rounded-md bg-accent text-accent-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity disabled:opacity-50"
-                      >
-                        {savingVersion
-                          ? <><Icon name="Loader2" size={12} className="animate-spin" /> Сохранение…</>
-                          : <><Icon name="Save" size={12} /> Сохранить</>
-                        }
-                      </button>
-                      <button type="button" onClick={() => setShowSaveVersion(false)} className="h-8 px-3 rounded-md text-xs text-muted-foreground hover:text-foreground">
-                        Отмена
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setShowSaveVersion(true)}
+                className="h-10 px-4 rounded-md border border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground text-sm font-medium flex items-center gap-2 hover:bg-primary-foreground/20 transition-colors"
+              >
+                <Icon name="History" size={16} /> Зафиксировать версию
+              </button>
               <button
                 onClick={() => navigate(`/product-analysis/${data.id}/edit`)}
                 className="h-10 px-5 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
@@ -332,6 +300,49 @@ export default function ProductView() {
           </div>
         </div>
       </div>
+
+      {showSaveVersion && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowSaveVersion(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-border bg-card shadow-xl p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold flex items-center gap-2 mb-4">
+              <Icon name="History" size={17} className="text-accent" /> Зафиксировать версию анализа
+            </h3>
+            <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-1.5">
+              Комментарий к версии анализа
+            </label>
+            <textarea
+              value={changeNote}
+              onChange={(e) => setChangeNote(e.target.value)}
+              placeholder="Например: анализ после аудита TLS…"
+              rows={3}
+              autoFocus
+              className="w-full px-2.5 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent resize-none"
+            />
+            <div className="flex items-center gap-2 mt-4">
+              <button
+                type="button"
+                disabled={savingVersion}
+                onClick={handleSaveVersion}
+                className="h-9 px-4 rounded-md bg-accent text-accent-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {savingVersion
+                  ? <><Icon name="Loader2" size={13} className="animate-spin" /> Сохранение…</>
+                  : <><Icon name="Save" size={13} /> Сохранить</>
+                }
+              </button>
+              <button type="button" onClick={() => setShowSaveVersion(false)} className="h-9 px-4 rounded-md text-sm text-muted-foreground hover:text-foreground">
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab bar */}
       <div className="border-b border-border bg-card/60 sticky top-0 z-10">
