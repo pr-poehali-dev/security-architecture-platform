@@ -5,6 +5,7 @@ import {
   compareAnalysisVersions,
   AnalysisVersion,
   VersionsCompareResult,
+  AssessmentStatus,
 } from '@/api/products';
 
 function scoreColor(score: number) {
@@ -30,6 +31,22 @@ const CHANGE_ICON: Record<string, string> = {
   added: 'Plus',
   removed: 'Minus',
 };
+
+const ASSESSMENT_BADGE_STYLE: Record<AssessmentStatus, string> = {
+  compliant:      'bg-success/15 text-success',
+  partial:        'bg-warning/15 text-warning',
+  non_compliant:  'bg-destructive/15 text-destructive',
+  not_assessed:   'bg-muted text-muted-foreground',
+};
+
+function StatusBadge({ status, label }: { status?: AssessmentStatus; label?: string }) {
+  if (!status || !label) return null;
+  return (
+    <span className={`inline-flex text-[11px] font-medium px-1.5 py-0.5 rounded ${ASSESSMENT_BADGE_STYLE[status]}`}>
+      {label}
+    </span>
+  );
+}
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString('ru-RU', {
@@ -196,12 +213,18 @@ export default function ProductVersionsTab({ productId, refreshKey }: Props) {
                   <div key={c.requirementId} className={`flex items-center gap-3 p-2.5 rounded-md border text-sm ${CHANGE_STYLE[c.change]}`}>
                     <Icon name={CHANGE_ICON[c.change]} size={14} className="shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{c.shortDesc}</div>
-                      <div className="text-[11px] opacity-80">
-                        {CHANGE_LABEL[c.change]}
-                        {c.change === 'status_changed' && <> · {c.fromStatusLabel} → {c.toStatusLabel}</>}
-                        {c.change === 'added' && <> · {c.toStatusLabel}</>}
-                        {c.change === 'removed' && <> · {c.fromStatusLabel}</>}
+                      <div className="font-medium truncate mb-1">{c.shortDesc}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap text-[11px] opacity-90">
+                        <span className="opacity-70">{CHANGE_LABEL[c.change]}</span>
+                        {c.change === 'status_changed' && (
+                          <span className="flex items-center gap-1.5">
+                            <StatusBadge status={c.fromStatus} label={c.fromStatusLabel} />
+                            <Icon name="ArrowRight" size={11} className="opacity-60" />
+                            <StatusBadge status={c.toStatus} label={c.toStatusLabel} />
+                          </span>
+                        )}
+                        {c.change === 'added' && <StatusBadge status={c.toStatus} label={c.toStatusLabel} />}
+                        {c.change === 'removed' && <StatusBadge status={c.fromStatus} label={c.fromStatusLabel} />}
                       </div>
                     </div>
                     <span className="text-[10px] font-mono opacity-70 shrink-0">{c.requirementId}</span>
