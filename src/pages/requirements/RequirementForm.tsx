@@ -343,43 +343,6 @@ export default function RequirementForm() {
           </div>
         </SectionCard>
 
-        {/* Скор */}
-        <SectionCard title="Оценка" icon="BarChart2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[11px] uppercase tracking-widest text-muted-foreground">Балл (1–4)</label>
-                <span className="font-mono text-lg font-bold text-accent">{form.scorePoint}</span>
-              </div>
-              <input
-                type="range" min={1} max={4} step={1}
-                value={form.scorePoint}
-                onChange={(e) => set('scorePoint', Number(e.target.value))}
-                className="w-full accent-accent"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
-                {[1,2,3,4].map((n) => <span key={n}>{n}</span>)}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[11px] uppercase tracking-widest text-muted-foreground">Вес (1–10)</label>
-                <span className="font-mono text-lg font-bold">{form.scoreWeight}</span>
-              </div>
-              <input
-                type="range" min={1} max={10} step={1}
-                value={form.scoreWeight}
-                onChange={(e) => set('scoreWeight', Number(e.target.value))}
-                className="w-full accent-accent"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
-                {[1,'','','','5','','','','','10'].map((n, i) => <span key={i}>{n}</span>)}
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
         {/* Доп. поля */}
         <SectionCard title="Документация и исполнение" icon="BookOpen">
           <Field label="Нормативная документация">
