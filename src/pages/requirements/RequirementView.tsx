@@ -158,21 +158,6 @@ export default function RequirementView() {
             </div>
           )}
 
-          {/* Score */}
-          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Скор</div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-accent">{req.scorePoint}</div>
-                <div className="text-[11px] text-muted-foreground mt-1">Балл (1–4)</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">{req.scoreWeight}</div>
-                <div className="text-[11px] text-muted-foreground mt-1">Вес (1–10)</div>
-              </div>
-            </div>
-          </div>
-
           {/* Meta */}
           <div className="rounded-lg border border-border bg-card p-5 space-y-3">
             <Field label="Владелец" value={req.owner} />

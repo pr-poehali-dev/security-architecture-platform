@@ -188,12 +188,6 @@ export default function RequirementList() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20 hidden xl:table-cell">
                   Версия
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-16 hidden xl:table-cell text-center">
-                  Балл
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-16 hidden xl:table-cell text-center">
-                  Вес
-                </th>
                 <th className="w-10" />
               </tr>
             </thead>
@@ -249,12 +243,6 @@ export default function RequirementList() {
                     <span className="font-mono text-xs text-muted-foreground">
                       {r.version}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 hidden xl:table-cell text-center">
-                    <span className="font-mono text-xs">{r.scorePoint}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden xl:table-cell text-center">
-                    <span className="font-mono text-xs">{r.scoreWeight}</span>
                   </td>
                   <td className="px-4 py-3">
                     <Icon

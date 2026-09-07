@@ -48,8 +48,6 @@ export interface Requirement {
   controlMetrics: string;
   fulfillmentMethod: string;
   isProcurement: boolean;
-  scorePoint: number;
-  scoreWeight: number;
   version: string;
   createdAt: string;
   updatedAt: string;
@@ -72,8 +70,6 @@ export interface RequirementFormData {
   controlMetrics: string;
   fulfillmentMethod: string;
   isProcurement: boolean;
-  scorePoint: number;
-  scoreWeight: number;
   tags: string[];
   technologyIds: string[];
   techDomainId: string | null;

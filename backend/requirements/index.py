@@ -164,10 +164,8 @@ def row_to_dict(row, tags, cur_version, technologies=None, versions=None, tech_d
         "controlMetrics": row[7],
         "fulfillmentMethod": row[8],
         "isProcurement": row[9],
-        "scorePoint": row[10],
-        "scoreWeight": row[11],
-        "createdAt": row[12],
-        "updatedAt": row[13],
+        "createdAt": row[10],
+        "updatedAt": row[11],
         "version": cur_version,
         "tags": tags,
         "techDomain": tech_domain,
@@ -240,7 +238,7 @@ def handler(event: dict, context) -> dict:
                         SELECT r.id, r.short_desc, r.description, r.req_type, r.owner,
                                r.status, r.normative_doc, r.control_metrics,
                                r.fulfillment_method, r.is_procurement,
-                               r.score_point, r.score_weight, r.created_at, r.updated_at,
+                               r.created_at, r.updated_at,
                                v.version
                         FROM requirements r
                         LEFT JOIN LATERAL (
@@ -257,7 +255,7 @@ def handler(event: dict, context) -> dict:
                         tags = get_tags(cur, r[0])
                         techs = get_technologies(cur, r[0])
                         tech_domain = get_tech_domain(cur, r[0])
-                        result.append(row_to_dict(r, tags, r[14] or "1.0", technologies=techs, tech_domain=tech_domain))
+                        result.append(row_to_dict(r, tags, r[12] or "1.0", technologies=techs, tech_domain=tech_domain))
                     return ok(result)
 
                 # ── GET single ────────────────────────────────────────
@@ -266,7 +264,7 @@ def handler(event: dict, context) -> dict:
                         """
                         SELECT id, short_desc, description, req_type, owner, status,
                                normative_doc, control_metrics, fulfillment_method,
-                               is_procurement, score_point, score_weight, created_at, updated_at
+                               is_procurement, created_at, updated_at
                         FROM requirements WHERE id = %s
                         """,
                         (req_id,),
@@ -305,8 +303,8 @@ def handler(event: dict, context) -> dict:
                         INSERT INTO requirements
                             (id, short_desc, description, req_type, owner, status,
                              normative_doc, control_metrics, fulfillment_method,
-                             is_procurement, score_point, score_weight)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                             is_procurement)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         """,
                         (
                             new_id,
@@ -319,8 +317,6 @@ def handler(event: dict, context) -> dict:
                             body.get("controlMetrics", ""),
                             body.get("fulfillmentMethod", ""),
                             bool(body.get("isProcurement", False)),
-                            int(body.get("scorePoint", 1)),
-                            int(body.get("scoreWeight", 1)),
                         ),
                     )
                     cur.execute(
@@ -332,7 +328,7 @@ def handler(event: dict, context) -> dict:
                     set_tech_domain(cur, new_id, body.get("techDomainId") or None)
 
                     cur.execute(
-                        "SELECT id, short_desc, description, req_type, owner, status, normative_doc, control_metrics, fulfillment_method, is_procurement, score_point, score_weight, created_at, updated_at FROM requirements WHERE id = %s",
+                        "SELECT id, short_desc, description, req_type, owner, status, normative_doc, control_metrics, fulfillment_method, is_procurement, created_at, updated_at FROM requirements WHERE id = %s",
                         (new_id,),
                     )
                     row = cur.fetchone()
@@ -357,8 +353,7 @@ def handler(event: dict, context) -> dict:
                         UPDATE requirements SET
                             short_desc = %s, description = %s, req_type = %s, owner = %s,
                             status = %s, normative_doc = %s, control_metrics = %s,
-                            fulfillment_method = %s, is_procurement = %s,
-                            score_point = %s, score_weight = %s, updated_at = NOW()
+                            fulfillment_method = %s, is_procurement = %s, updated_at = NOW()
                         WHERE id = %s
                         """,
                         (
@@ -371,8 +366,6 @@ def handler(event: dict, context) -> dict:
                             body.get("controlMetrics", ""),
                             body.get("fulfillmentMethod", ""),
                             bool(body.get("isProcurement", False)),
-                            int(body.get("scorePoint", 1)),
-                            int(body.get("scoreWeight", 1)),
                             uid,
                         ),
                     )
@@ -386,7 +379,7 @@ def handler(event: dict, context) -> dict:
                     set_tech_domain(cur, uid, body.get("techDomainId") or None)
 
                     cur.execute(
-                        "SELECT id, short_desc, description, req_type, owner, status, normative_doc, control_metrics, fulfillment_method, is_procurement, score_point, score_weight, created_at, updated_at FROM requirements WHERE id = %s",
+                        "SELECT id, short_desc, description, req_type, owner, status, normative_doc, control_metrics, fulfillment_method, is_procurement, created_at, updated_at FROM requirements WHERE id = %s",
                         (uid,),
                     )
                     row = cur.fetchone()

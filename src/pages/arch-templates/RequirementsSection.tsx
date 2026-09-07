@@ -96,23 +96,14 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
         ))}
       </div>
 
-      {/* Скор */}
-      <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Icon name="Star" size={11} className="text-accent" />
-          Балл: <span className="font-semibold text-foreground ml-0.5">{detail.scorePoint}</span>
-        </span>
-        <span className="flex items-center gap-1">
-          <Icon name="Weight" size={11} className="text-accent" />
-          Вес: <span className="font-semibold text-foreground ml-0.5">{detail.scoreWeight}</span>
-        </span>
-        {detail.owner && (
+      {detail.owner && (
+        <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <Icon name="User" size={11} />
             {detail.owner}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Описание */}
       {detail.description && (

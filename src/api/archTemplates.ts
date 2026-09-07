@@ -167,8 +167,6 @@ export interface ExportRequirement extends RequirementRef {
   controlMetrics?: string;
   fulfillmentMethod?: string;
   isProcurement?: boolean;
-  scorePoint?: number;
-  scoreWeight?: number;
 }
 export interface ExportRequirementGroup {
   domainId: string | null;

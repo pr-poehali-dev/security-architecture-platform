@@ -193,24 +193,10 @@ function ExportReqCard({
                 ))}
               </div>
 
-              {/* Балл / Вес / Владелец */}
-              {(detail.scorePoint != null || detail.scoreWeight != null || detail.owner) && (
+              {/* Владелец */}
+              {detail.owner && (
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                  {detail.scorePoint != null && (
-                    <span className="flex items-center gap-1">
-                      <Icon name="Star" size={10} className="text-accent" />
-                      Балл: <span className="font-semibold text-foreground ml-0.5">{detail.scorePoint}</span>
-                    </span>
-                  )}
-                  {detail.scoreWeight != null && (
-                    <span className="flex items-center gap-1">
-                      <Icon name="Weight" size={10} className="text-accent" />
-                      Вес: <span className="font-semibold text-foreground ml-0.5">{detail.scoreWeight}</span>
-                    </span>
-                  )}
-                  {detail.owner && (
-                    <span className="flex items-center gap-1"><Icon name="User" size={10} /> {detail.owner}</span>
-                  )}
+                  <span className="flex items-center gap-1"><Icon name="User" size={10} /> {detail.owner}</span>
                 </div>
               )}
 
@@ -444,8 +430,6 @@ function buildMarkdown(
           if (r.source === 'hardening') meta.push('**Харденинг**');
           if (detail?.techDomain) meta.push(`**Домен:** ${detail.techDomain.name}`);
           if (detail?.owner) meta.push(`**Владелец:** ${detail.owner}`);
-          if (detail?.scorePoint != null) meta.push(`**Балл:** ${detail.scorePoint}`);
-          if (detail?.scoreWeight != null) meta.push(`**Вес:** ${detail.scoreWeight}`);
           if (meta.length) { lines.push(meta.join(' · ')); lines.push(''); }
 
           // Теги и технологии

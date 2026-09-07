@@ -528,13 +528,12 @@ async def requirements_post(request: Request):
         req_id = f"req-{next_seq(cur, 'requirement_seq')}"
         cur.execute(
             """INSERT INTO requirements (id, short_desc, description, req_type, owner, status,
-               normative_doc, control_metrics, fulfillment_method, is_procurement, score_point, score_weight)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
+               normative_doc, control_metrics, fulfillment_method, is_procurement)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
             (req_id, data.get("short_desc",""), data.get("description",""),
              data.get("req_type","functional"), data.get("owner",""), data.get("status","active"),
              data.get("normative_doc",""), data.get("control_metrics",""),
-             data.get("fulfillment_method",""), data.get("is_procurement", False),
-             data.get("score_point",1), data.get("score_weight",1)),
+             data.get("fulfillment_method",""), data.get("is_procurement", False)),
         )
         item = row_to_dict(cur, cur.fetchone())
         tags = _upsert_req_tags(cur, req_id, data.get("tags", []))
@@ -552,11 +551,11 @@ async def requirements_put(request: Request):
         cur.execute(
             """UPDATE requirements SET short_desc=%s, description=%s, req_type=%s, owner=%s, status=%s,
                normative_doc=%s, control_metrics=%s, fulfillment_method=%s, is_procurement=%s,
-               score_point=%s, score_weight=%s, updated_at=now() WHERE id=%s RETURNING *""",
+               updated_at=now() WHERE id=%s RETURNING *""",
             (data.get("short_desc",""), data.get("description",""), data.get("req_type","functional"),
              data.get("owner",""), data.get("status","active"), data.get("normative_doc",""),
              data.get("control_metrics",""), data.get("fulfillment_method",""),
-             data.get("is_procurement",False), data.get("score_point",1), data.get("score_weight",1), req_id),
+             data.get("is_procurement",False), req_id),
         )
         item = row_to_dict(cur, cur.fetchone())
         cur.execute("DELETE FROM requirement_tags WHERE requirement_id=%s", (req_id,))
@@ -614,7 +613,6 @@ def _fmt_req(r, tags, techs, tech_domain):
         "owner": r["owner"], "status": r["status"], "statusLabel": STATUS_LABELS.get(r["status"], r["status"]),
         "normativeDoc": r["normative_doc"], "controlMetrics": r["control_metrics"],
         "fulfillmentMethod": r["fulfillment_method"], "isProcurement": r["is_procurement"],
-        "scorePoint": r["score_point"], "scoreWeight": r["score_weight"],
         "createdAt": fmt_dt(r["created_at"]), "updatedAt": fmt_dt(r["updated_at"]),
         "tags": tags, "technologies": techs, "techDomain": tech_domain,
     }
@@ -1012,7 +1010,7 @@ def _link_hard_solutions(cur, hard_id, sol_ids):
 def _get_hard_req_domains(cur, hard_id):
     cur.execute("""
         SELECT td.id, td.name,
-               r.id as req_id, r.short_desc, r.req_type, r.score_point, r.score_weight, r.is_procurement
+               r.id as req_id, r.short_desc, r.req_type, r.is_procurement
         FROM tech_domains td
         JOIN requirement_tech_domain rtd ON td.id = rtd.tech_domain_id
         JOIN requirements r ON r.id = rtd.requirement_id
@@ -1021,12 +1019,12 @@ def _get_hard_req_domains(cur, hard_id):
     rows = cur.fetchall()
     domains = {}
     for row in rows:
-        td_id, td_name, req_id, short_desc, req_type, score_point, score_weight, is_procurement = row
+        td_id, td_name, req_id, short_desc, req_type, is_procurement = row
         if td_id not in domains:
             domains[td_id] = {"id": td_id, "name": td_name, "requirements": []}
         domains[td_id]["requirements"].append({
             "id": req_id, "shortDesc": short_desc, "reqType": req_type,
-            "scorePoint": score_point, "scoreWeight": score_weight, "isProcurement": is_procurement,
+            "isProcurement": is_procurement,
         })
     return list(domains.values())
 
@@ -1200,7 +1198,7 @@ def _build_tmpl_detail(cur, item, export_mode=False):
     reqs = []
     if export_mode:
         cur.execute("""
-            SELECT r.id, r.short_desc, r.description, r.req_type, r.score_point, r.score_weight,
+            SELECT r.id, r.short_desc, r.description, r.req_type,
                    r.normative_doc, r.control_metrics, r.fulfillment_method, r.is_procurement,
                    td.id as td_id, td.name as td_name
             FROM requirements r
@@ -1214,9 +1212,9 @@ def _build_tmpl_detail(cur, item, export_mode=False):
         for row in cur.fetchall():
             reqs.append({
                 "id": row[0], "shortDesc": row[1], "description": row[2],
-                "reqType": row[3], "scorePoint": row[4], "scoreWeight": row[5],
-                "normativeDoc": row[6], "controlMetrics": row[7], "fulfillmentMethod": row[8],
-                "isProcurement": row[9], "techDomainId": row[10], "techDomainName": row[11],
+                "reqType": row[3],
+                "normativeDoc": row[4], "controlMetrics": row[5], "fulfillmentMethod": row[6],
+                "isProcurement": row[7], "techDomainId": row[8], "techDomainName": row[9],
             })
 
     return {

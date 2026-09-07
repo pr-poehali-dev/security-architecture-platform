@@ -603,7 +603,7 @@ def handler(event: dict, context) -> dict:
                         cur.execute(
                             f"""SELECT id, short_desc, description, req_type, owner, status,
                                        normative_doc, control_metrics, fulfillment_method,
-                                       is_procurement, score_point, score_weight
+                                       is_procurement
                                 FROM {SCHEMA}.requirements WHERE id IN ({ph2})""",
                             all_req_ids,
                         )
@@ -616,7 +616,6 @@ def handler(event: dict, context) -> dict:
                                 "owner": rr[4], "status": rr[5],
                                 "normativeDoc": rr[6], "controlMetrics": rr[7],
                                 "fulfillmentMethod": rr[8], "isProcurement": rr[9],
-                                "scorePoint": rr[10], "scoreWeight": rr[11],
                             }
                     # Собираем группы с полными данными требований
                     full_req_groups = []
