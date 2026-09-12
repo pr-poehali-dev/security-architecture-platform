@@ -231,12 +231,24 @@ function ExportReqCard({
                     </div>
                   )}
                   {r.hardeningId && (
-                    <div className="flex flex-col gap-1 min-w-0 flex-1 pl-3 border-l border-orange-500/30">
+                    <div className="flex flex-col gap-1.5 min-w-0 flex-1 pl-3 border-l border-orange-500/30">
                       <div className="flex items-center gap-1">
                         <Icon name="ShieldCheck" size={10} className="text-orange-400" />
                         <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Харденинг</span>
                         {loadingH && <Icon name="Loader2" size={9} className="animate-spin text-orange-400/50 ml-1" />}
                       </div>
+                      {!loadingH && hContent && (
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Icon name="Star" size={10} className="text-accent" />
+                            Балл: <span className="font-semibold text-foreground">{hContent.scorePoint}</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Icon name="Weight" size={10} className="text-accent" />
+                            Вес: <span className="font-semibold text-foreground">{hContent.scoreWeight}</span>
+                          </span>
+                        </div>
+                      )}
                       {!loadingH && (hContent?.markdown
                         ? <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
                         : <span className="text-[11px] text-muted-foreground/50 italic">Текст не заполнен</span>
@@ -460,13 +472,15 @@ function buildMarkdown(
           if (detail?.normativeDoc || detail?.controlMetrics || detail?.fulfillmentMethod) lines.push('');
 
           // Харденинг
-          if (r.hardeningId && hContent?.markdown) {
-            lines.push('**Харденинг:**');
+          if (r.hardeningId && hContent) {
+            lines.push(`**Харденинг** · Балл: ${hContent.scorePoint} · Вес: ${hContent.scoreWeight}`);
             lines.push('');
-            lines.push('```markdown');
-            lines.push(hContent.markdown);
-            lines.push('```');
-            lines.push('');
+            if (hContent.markdown) {
+              lines.push('```markdown');
+              lines.push(hContent.markdown);
+              lines.push('```');
+              lines.push('');
+            }
           }
         });
       });

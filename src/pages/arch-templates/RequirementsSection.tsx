@@ -138,12 +138,24 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
           )}
           {/* Правая колонка: харденинг */}
           {hardeningId && (
-            <div className="flex flex-col gap-1 min-w-0 flex-1 pl-3 border-l border-orange-500/30">
+            <div className="flex flex-col gap-1.5 min-w-0 flex-1 pl-3 border-l border-orange-500/30">
               <div className="flex items-center gap-1">
                 <Icon name="ShieldCheck" size={10} className="text-orange-400" />
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Харденинг</span>
                 {hLoading && <Icon name="Loader2" size={9} className="animate-spin text-orange-400/50 ml-1" />}
               </div>
+              {!hLoading && hContent && (
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Icon name="Star" size={10} className="text-accent" />
+                    Балл: <span className="font-semibold text-foreground">{hContent.scorePoint}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Icon name="Weight" size={10} className="text-accent" />
+                    Вес: <span className="font-semibold text-foreground">{hContent.scoreWeight}</span>
+                  </span>
+                </div>
+              )}
               {!hLoading && (hContent?.markdown
                 ? <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
                 : <span className="text-[11px] text-muted-foreground/50 italic">Текст не заполнен</span>

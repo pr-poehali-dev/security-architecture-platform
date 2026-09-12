@@ -60,6 +60,20 @@ export default function ReqViewer({ hardeningId, req }: ReqViewerProps) {
 
   return (
     <div className="space-y-5 pt-1">
+      {/* Балл и вес */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card/50">
+          <Icon name="Star" size={13} className="text-accent" />
+          <span className="text-[11px] text-muted-foreground">Балл:</span>
+          <span className="font-mono text-sm font-bold text-accent">{content.scorePoint}</span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card/50">
+          <Icon name="Weight" size={13} className="text-accent" />
+          <span className="text-[11px] text-muted-foreground">Вес:</span>
+          <span className="font-mono text-sm font-bold text-accent">{content.scoreWeight}</span>
+        </div>
+      </div>
+
       {/* Матрица сред */}
       <div>
         <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
