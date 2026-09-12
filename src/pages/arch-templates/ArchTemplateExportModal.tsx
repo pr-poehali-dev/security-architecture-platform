@@ -178,6 +178,16 @@ function ExportReqCard({
                     <Icon name="ShieldCheck" size={9} /> Харденинг
                   </span>
                 )}
+                {r.scorePoint != null && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
+                    <Icon name="Star" size={9} /> Балл: {r.scorePoint}
+                  </span>
+                )}
+                {r.scoreWeight != null && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
+                    <Icon name="Weight" size={9} /> Вес: {r.scoreWeight}
+                  </span>
+                )}
                 {detail.techDomain && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1">
                     <Icon name="Layers" size={9} /> {detail.techDomain.name}
@@ -237,18 +247,6 @@ function ExportReqCard({
                         <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Харденинг</span>
                         {loadingH && <Icon name="Loader2" size={9} className="animate-spin text-orange-400/50 ml-1" />}
                       </div>
-                      {!loadingH && hContent && (
-                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Icon name="Star" size={10} className="text-accent" />
-                            Балл: <span className="font-semibold text-foreground">{hContent.scorePoint}</span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Icon name="Weight" size={10} className="text-accent" />
-                            Вес: <span className="font-semibold text-foreground">{hContent.scoreWeight}</span>
-                          </span>
-                        </div>
-                      )}
                       {!loadingH && (hContent?.markdown
                         ? <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
                         : <span className="text-[11px] text-muted-foreground/50 italic">Текст не заполнен</span>
@@ -436,12 +434,16 @@ function buildMarkdown(
           lines.push('');
 
           // Мета-строка
+          const scorePoint = r.scorePoint ?? hContent?.scorePoint;
+          const scoreWeight = r.scoreWeight ?? hContent?.scoreWeight;
           const meta: string[] = [];
           if (detail?.reqTypeLabel) meta.push(`**Тип:** ${detail.reqTypeLabel}`);
           if (detail?.isProcurement) meta.push('**Закупки**');
           if (r.source === 'hardening') meta.push('**Харденинг**');
           if (detail?.techDomain) meta.push(`**Домен:** ${detail.techDomain.name}`);
           if (detail?.owner) meta.push(`**Владелец:** ${detail.owner}`);
+          if (scorePoint != null) meta.push(`**Балл:** ${scorePoint}`);
+          if (scoreWeight != null) meta.push(`**Вес:** ${scoreWeight}`);
           if (meta.length) { lines.push(meta.join(' · ')); lines.push(''); }
 
           // Теги и технологии
@@ -473,7 +475,7 @@ function buildMarkdown(
 
           // Харденинг
           if (r.hardeningId && hContent) {
-            lines.push(`**Харденинг** · Балл: ${hContent.scorePoint} · Вес: ${hContent.scoreWeight}`);
+            lines.push('**Харденинг:**');
             lines.push('');
             if (hContent.markdown) {
               lines.push('```markdown');

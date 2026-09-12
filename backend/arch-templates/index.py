@@ -320,14 +320,15 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
             if row[0] not in all_req_rows:
                 all_req_rows[row[0]] = row
 
-    # Подтягиваем hardeningId для всех требований (не только source=hardening)
+    # Подтягиваем hardeningId + скор-балл/вес для всех требований (не только source=hardening)
     req_ids = list(all_req_rows.keys())
     hardening_id_map: dict = {}  # req_id -> hardening_id
+    score_map: dict = {}  # req_id -> (score_point, score_weight)
     if req_ids:
         placeholders = ",".join(["%s"] * len(req_ids))
         cur.execute(
             f"""
-            SELECT DISTINCT ON (requirement_id) requirement_id, hardening_id
+            SELECT DISTINCT ON (requirement_id) requirement_id, hardening_id, score_point, score_weight
             FROM {SCHEMA}.hardening_req_content
             WHERE requirement_id IN ({placeholders})
             ORDER BY requirement_id, hardening_id
@@ -336,6 +337,7 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
         )
         for row in cur.fetchall():
             hardening_id_map[row[0]] = row[1]
+            score_map[row[0]] = (row[2], row[3])
 
     # Подгружаем env_status из харденинга для каждого требования
     env_status_map: dict = {}  # req_id -> {"noIod": {...}, "iod": {...}}
@@ -373,10 +375,13 @@ def get_requirements_by_domain(cur, tech_ids: list, decision_ids: list) -> list:
             "noIod": {e: "not_required" for e in ENVS_LIST},
             "iod":   {e: "not_required" for e in ENVS_LIST},
         }
+        score = score_map.get(row[0])
         req = {"id": row[0], "shortDesc": row[1], "status": row[2],
                "techId": row[5] or "", "techName": row[6] or "", "source": row[7],
                "hardeningId": hardening_id_map.get(row[0]) or (row[8] if len(row) > 8 else None),
-               "envStatus": env_status_map.get(row[0], default_dual)}
+               "envStatus": env_status_map.get(row[0], default_dual),
+               "scorePoint": score[0] if score else None,
+               "scoreWeight": score[1] if score else None}
         groups[domain_key]["requirements"].append(req)
 
     return list(groups.values())

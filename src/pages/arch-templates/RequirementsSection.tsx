@@ -144,18 +144,6 @@ function ReqDetailPanel({ reqId, hardeningId }: { reqId: string; hardeningId?: s
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-400">Харденинг</span>
                 {hLoading && <Icon name="Loader2" size={9} className="animate-spin text-orange-400/50 ml-1" />}
               </div>
-              {!hLoading && hContent && (
-                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Icon name="Star" size={10} className="text-accent" />
-                    Балл: <span className="font-semibold text-foreground">{hContent.scorePoint}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Icon name="Weight" size={10} className="text-accent" />
-                    Вес: <span className="font-semibold text-foreground">{hContent.scoreWeight}</span>
-                  </span>
-                </div>
-              )}
               {!hLoading && (hContent?.markdown
                 ? <MarkdownViewer>{hContent.markdown}</MarkdownViewer>
                 : <span className="text-[11px] text-muted-foreground/50 italic">Текст не заполнен</span>
@@ -251,6 +239,16 @@ export default function RequirementsSection({ groups }: RequirementsSectionProps
                         {req.source === 'hardening' && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 flex items-center gap-1">
                             <Icon name="ShieldCheck" size={9} /> харденинг
+                          </span>
+                        )}
+                        {req.scorePoint != null && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
+                            <Icon name="Star" size={9} /> Балл: {req.scorePoint}
+                          </span>
+                        )}
+                        {req.scoreWeight != null && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
+                            <Icon name="Weight" size={9} /> Вес: {req.scoreWeight}
                           </span>
                         )}
                       </div>

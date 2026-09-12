@@ -100,6 +100,8 @@ export interface RequirementRef {
   source: string;
   hardeningId?: string | null;
   envStatus?: EnvStatusDual;
+  scorePoint?: number | null;
+  scoreWeight?: number | null;
 }
 export interface RequirementDomainGroup {
   domainId: string | null;
