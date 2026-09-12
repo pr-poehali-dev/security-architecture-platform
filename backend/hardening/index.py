@@ -10,6 +10,7 @@ GET  /?env_status&hid=...&rid=...  — статусы сред для требо
 POST /                              — создать карточку
 PUT  /                              — обновить карточку
 PUT  /?action=save_req_content      — сохранить Markdown для требования
+PUT  /?action=save_req_score        — сохранить скор-балл и вес требования
 PUT  /?action=save_env_status       — сохранить статусы сред для требования
 POST /?action=upload_req_image      — загрузить изображение для требования
 """
@@ -223,12 +224,14 @@ def save_env_status(cur, hid: str, rid: str, statuses: dict):
 
 def get_req_content(cur, hid: str, rid: str) -> dict:
     cur.execute(
-        "SELECT markdown, updated_at FROM hardening_req_content WHERE hardening_id = %s AND requirement_id = %s",
+        "SELECT markdown, updated_at, score_point, score_weight FROM hardening_req_content WHERE hardening_id = %s AND requirement_id = %s",
         (hid, rid),
     )
     row = cur.fetchone()
     markdown = row[0] if row else ""
     updated_at = row[1] if row else None
+    score_point = row[2] if row else 1
+    score_weight = row[3] if row else 1
 
     cur.execute(
         """SELECT id, filename, s3_key, content_type, size_bytes, sort_order, created_at
@@ -244,7 +247,8 @@ def get_req_content(cur, hid: str, rid: str) -> dict:
         for r in cur.fetchall()
     ]
     env_status = get_env_status(cur, hid, rid)
-    return {"markdown": markdown, "updatedAt": updated_at, "images": images, "envStatus": env_status}
+    return {"markdown": markdown, "updatedAt": updated_at, "images": images, "envStatus": env_status,
+            "scorePoint": score_point, "scoreWeight": score_weight}
 
 
 def row_to_dict(row, tags, cur_version, versions=None, solutions=None, requirements_by_domain=None):
@@ -401,6 +405,34 @@ def handler(event: dict, context) -> dict:
             DO UPDATE SET markdown = EXCLUDED.markdown, updated_at = now()
             """,
             (hid, rid, markdown),
+        )
+        conn.commit()
+        content = get_req_content(cur, hid, rid)
+        conn.close()
+        return ok(content)
+
+    # Сохранить скор-балл и вес требования
+    if action == "save_req_score" and method == "PUT":
+        body = parse_body(event)
+        hid = body.get("hardeningId", "")
+        rid = body.get("requirementId", "")
+        if not hid or not rid:
+            return err("Нужны hardeningId и requirementId")
+        try:
+            score_point = max(1, min(5, int(body.get("scorePoint", 1))))
+            score_weight = max(1, min(10, int(body.get("scoreWeight", 1))))
+        except (TypeError, ValueError):
+            return err("Балл и вес должны быть числами")
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO hardening_req_content (hardening_id, requirement_id, score_point, score_weight, updated_at)
+            VALUES (%s, %s, %s, %s, now())
+            ON CONFLICT (hardening_id, requirement_id)
+            DO UPDATE SET score_point = EXCLUDED.score_point, score_weight = EXCLUDED.score_weight, updated_at = now()
+            """,
+            (hid, rid, score_point, score_weight),
         )
         conn.commit()
         content = get_req_content(cur, hid, rid)

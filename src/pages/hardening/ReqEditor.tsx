@@ -5,6 +5,7 @@ import {
   fetchReqContent,
   saveReqMarkdown,
   saveEnvStatus,
+  saveReqScore,
   uploadReqImage,
   RequirementRef,
   ReqContent,
@@ -38,6 +39,7 @@ interface ReqEditorProps {
 export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
   const [content, setContent] = useState<ReqContent>({
     markdown: '', updatedAt: null, images: [], envStatus: { ...DEFAULT_ENV_STATUS_DUAL },
+    scorePoint: 1, scoreWeight: 1,
   });
   const [loadingContent, setLoadingContent] = useState(true);
   const [mdValue, setMdValue] = useState('');
@@ -48,9 +50,14 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
   const [saved, setSaved] = useState(false);
   const [envSaved, setEnvSaved] = useState(false);
   const [localEnv, setLocalEnv] = useState<EnvStatusDual>({ ...DEFAULT_ENV_STATUS_DUAL });
+  const [scorePoint, setScorePoint] = useState(1);
+  const [scoreWeight, setScoreWeight] = useState(1);
+  const [savingScore, setSavingScore] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const envSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const scoreSaveTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (!hardeningId) return;
@@ -60,6 +67,8 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
         setContent(c);
         setMdValue(c.markdown);
         setLocalEnv(c.envStatus ?? { ...DEFAULT_ENV_STATUS_DUAL });
+        setScorePoint(c.scorePoint ?? 1);
+        setScoreWeight(c.scoreWeight ?? 1);
       })
       .finally(() => setLoadingContent(false));
   }, [hardeningId, req.id]);
@@ -98,6 +107,19 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
     }
   };
 
+  const commitScore = async (point: number, weight: number) => {
+    if (!hardeningId) return;
+    setSavingScore(true);
+    try {
+      await saveReqScore(hardeningId, req.id, point, weight);
+      setScoreSaved(true);
+      clearTimeout(scoreSaveTimer.current);
+      scoreSaveTimer.current = setTimeout(() => setScoreSaved(false), 1500);
+    } finally {
+      setSavingScore(false);
+    }
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !hardeningId) return;
@@ -127,6 +149,56 @@ export default function ReqEditor({ hardeningId, req }: ReqEditorProps) {
           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
             <Icon name="Cpu" size={12} /> {req.techName}
           </div>
+        )}
+      </div>
+
+      {/* Скор-балл и вес */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <Icon name="BarChart2" size={12} /> Оценка требования
+          </span>
+          {savingScore && <Icon name="Loader2" size={12} className="animate-spin text-muted-foreground" />}
+          {scoreSaved && !savingScore && (
+            <span className="text-[11px] text-success flex items-center gap-1">
+              <Icon name="Check" size={11} /> Сохранено
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-4 rounded-lg border border-border p-3">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] text-muted-foreground">Балл (1–5)</label>
+              <span className="font-mono text-sm font-bold text-accent">{scorePoint}</span>
+            </div>
+            <input
+              type="range" min={1} max={5} step={1}
+              value={scorePoint}
+              disabled={!hardeningId}
+              onChange={(e) => setScorePoint(Number(e.target.value))}
+              onMouseUp={() => commitScore(scorePoint, scoreWeight)}
+              onTouchEnd={() => commitScore(scorePoint, scoreWeight)}
+              className="w-full accent-accent disabled:opacity-40"
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] text-muted-foreground">Вес (1–10)</label>
+              <span className="font-mono text-sm font-bold text-accent">{scoreWeight}</span>
+            </div>
+            <input
+              type="range" min={1} max={10} step={1}
+              value={scoreWeight}
+              disabled={!hardeningId}
+              onChange={(e) => setScoreWeight(Number(e.target.value))}
+              onMouseUp={() => commitScore(scorePoint, scoreWeight)}
+              onTouchEnd={() => commitScore(scorePoint, scoreWeight)}
+              className="w-full accent-accent disabled:opacity-40"
+            />
+          </div>
+        </div>
+        {!hardeningId && (
+          <p className="text-[11px] text-muted-foreground">Сохраните карточку, чтобы задавать оценку</p>
         )}
       </div>
 

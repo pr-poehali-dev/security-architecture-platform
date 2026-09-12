@@ -193,6 +193,8 @@ export interface ReqContent {
   updatedAt: string | null;
   images: ReqImage[];
   envStatus: EnvStatusDual;
+  scorePoint: number;
+  scoreWeight: number;
 }
 
 export async function fetchReqContent(
@@ -208,7 +210,24 @@ export async function fetchReqContent(
       updatedAt: null,
       images: [],
       envStatus: { ...DEFAULT_ENV_STATUS_DUAL },
+      scorePoint: 1,
+      scoreWeight: 1,
     };
+  return res.json();
+}
+
+export async function saveReqScore(
+  hardeningId: string,
+  requirementId: string,
+  scorePoint: number,
+  scoreWeight: number,
+): Promise<ReqContent> {
+  const res = await fetch(`${BASE}?action=save_req_score`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hardeningId, requirementId, scorePoint, scoreWeight }),
+  });
+  if (!res.ok) throw new Error("Ошибка сохранения оценки");
   return res.json();
 }
 
